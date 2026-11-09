@@ -5,8 +5,8 @@ from villages and votes to IPL sixes and ISRO. One guess each, scored by how man
 times off you were.
 
 Built clean-room after studying how a similar game works with
-[REA](https://github.com/morluto/rea). See `docs/REA-REPORT.md` for the analysis
-and `docs/SPEC.md` for the product spec. No code, questions, copy or assets
+[REA](https://github.com/morluto/rea). See `research/REA-REPORT.md` for the analysis
+and `research/SPEC.md` for the product spec. No code, questions, copy or assets
 were taken from the analysed site.
 
 ## Run it
@@ -16,8 +16,18 @@ npm install
 npm run dev
 ```
 
-Production build (static files in `build/`, deployable to any static host:
-Cloudflare Pages, Netlify, Vercel, GitHub Pages, S3):
+Live site: **https://samarthjo.github.io/andaaza/**, served by GitHub Pages
+from the `docs/` folder on `main` (Settings → Pages → Deploy from a branch →
+`main` → `/docs`).
+
+To publish changes, rebuild `docs/` and push:
+
+```bash
+npm run build:pages
+git add docs && git commit -m "Rebuild site" && git push
+```
+
+Plain production build (static files in `build/`, deployable to any static host):
 
 ```bash
 npm run build
