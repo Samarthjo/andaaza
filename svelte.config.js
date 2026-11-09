@@ -5,7 +5,9 @@ import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 const config = {
   preprocess: vitePreprocess(),
   kit: {
-    adapter: adapter({ fallback: '404.html' }),
+    // On Vercel, adapter-static's zero-config mode writes Vercel's Build Output API
+    // (clean URLs, immutable caching); it only kicks in when no options are passed.
+    adapter: adapter(process.env.VERCEL ? undefined : { fallback: '404.html' }),
     // GitHub Pages project sites live under /<repo>; the deploy workflow sets BASE_PATH.
     paths: { base: process.env.BASE_PATH ?? '' },
     prerender: { entries: ['*'] }
