@@ -1,0 +1,320 @@
+/* ---------- Palettes: ruled ledger paper (light) and ledger cover (dark) ---------- */
+:root,
+[data-palette='haldi'] {
+  --page: #fbf1c7;
+  --page-2: #f4e2a2;
+  --ink: #1e2747;
+  --ink-soft: #4d5577;
+  --binding: #9e1b1b;
+  --binding-ink: #fff6da;
+  --rule: #ead48d;
+  --margin: #d9544f;
+  --answer: #b3261e;
+  --accent: #c27c00;
+  --good: #2d7a4b;
+  --warn: #b0561a;
+  --bad: #b2312a;
+}
+[data-palette='neel'] {
+  --page: #e9edfa;
+  --page-2: #d5dcf4;
+  --ink: #141b3a;
+  --ink-soft: #46507a;
+  --binding: #26338c;
+  --binding-ink: #eef1ff;
+  --rule: #c3cbee;
+  --margin: #d9544f;
+  --answer: #b3261e;
+  --accent: #3f55c8;
+  --good: #23784f;
+  --warn: #a8571c;
+  --bad: #b2312a;
+}
+[data-palette='mehendi'] {
+  --page: #eef0dc;
+  --page-2: #dde2bf;
+  --ink: #1f2614;
+  --ink-soft: #4c5638;
+  --binding: #3f5a1a;
+  --binding-ink: #f3f6e4;
+  --rule: #cdd39f;
+  --margin: #c4523f;
+  --answer: #a3321c;
+  --accent: #6d7f22;
+  --good: #2f6f2a;
+  --warn: #9b5a16;
+  --bad: #a83226;
+}
+
+/* Dark: the ledger's cloth cover. Applied explicitly or via system preference. */
+[data-palette='haldi'][data-theme='dark'] {
+  --page: #1d1410;
+  --page-2: #2b1e17;
+  --ink: #f7e7b4;
+  --ink-soft: #cbb98c;
+  --binding: #e9b23c;
+  --binding-ink: #1d1410;
+  --rule: #3a2a20;
+  --margin: #8f3a32;
+  --answer: #ff9478;
+  --accent: #f2b53a;
+  --good: #7fcf98;
+  --warn: #f0a466;
+  --bad: #f08a7e;
+}
+[data-palette='neel'][data-theme='dark'] {
+  --page: #0f1430;
+  --page-2: #182044;
+  --ink: #e2e7ff;
+  --ink-soft: #a3acd6;
+  --binding: #93a2ff;
+  --binding-ink: #0f1430;
+  --rule: #232c56;
+  --margin: #7a3a52;
+  --answer: #ffa3b6;
+  --accent: #93a2ff;
+  --good: #7fcf98;
+  --warn: #f0a466;
+  --bad: #f08a7e;
+}
+[data-palette='mehendi'][data-theme='dark'] {
+  --page: #141a0c;
+  --page-2: #1f2714;
+  --ink: #e8eed0;
+  --ink-soft: #b1ba8e;
+  --binding: #b9d062;
+  --binding-ink: #141a0c;
+  --rule: #2a3418;
+  --margin: #7a4232;
+  --answer: #ffa07e;
+  --accent: #b9d062;
+  --good: #8fd39c;
+  --warn: #f0a466;
+  --bad: #f08a7e;
+}
+@media (prefers-color-scheme: dark) {
+  [data-palette='haldi'][data-theme='system'] {
+    --page: #1d1410;
+    --page-2: #2b1e17;
+    --ink: #f7e7b4;
+    --ink-soft: #cbb98c;
+    --binding: #e9b23c;
+    --binding-ink: #1d1410;
+    --rule: #3a2a20;
+    --margin: #8f3a32;
+  --answer: #ff9478;
+    --accent: #f2b53a;
+    --good: #7fcf98;
+    --warn: #f0a466;
+    --bad: #f08a7e;
+  }
+  [data-palette='neel'][data-theme='system'] {
+    --page: #0f1430;
+    --page-2: #182044;
+    --ink: #e2e7ff;
+    --ink-soft: #a3acd6;
+    --binding: #93a2ff;
+    --binding-ink: #0f1430;
+    --rule: #232c56;
+    --margin: #7a3a52;
+  --answer: #ffa3b6;
+    --accent: #93a2ff;
+    --good: #7fcf98;
+    --warn: #f0a466;
+    --bad: #f08a7e;
+  }
+  [data-palette='mehendi'][data-theme='system'] {
+    --page: #141a0c;
+    --page-2: #1f2714;
+    --ink: #e8eed0;
+    --ink-soft: #b1ba8e;
+    --binding: #b9d062;
+    --binding-ink: #141a0c;
+    --rule: #2a3418;
+    --margin: #7a4232;
+  --answer: #ffa07e;
+    --accent: #b9d062;
+    --good: #8fd39c;
+    --warn: #f0a466;
+    --bad: #f08a7e;
+  }
+}
+
+/* ---------- Type & spacing ---------- */
+:root {
+  --font-display: 'Rozha One', 'Noto Serif Devanagari', Georgia, serif;
+  --font-ui: 'Mukta', 'Noto Sans Devanagari', system-ui, sans-serif;
+  --font-hand: 'Kalam', 'Comic Neue', cursive;
+  --line: 2rem; /* ledger rule spacing */
+  --gutter: 1rem;
+  --measure: 34rem;
+  --radius: 10px;
+  --t-xs: 0.8125rem;
+  --t-sm: 0.9375rem;
+  --t-md: 1.0625rem;
+  --t-lg: 1.375rem;
+  --t-xl: 1.875rem;
+  --t-2xl: 2.75rem;
+  --t-3xl: 4.25rem;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+html {
+  -webkit-text-size-adjust: 100%;
+}
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: var(--t-md);
+  line-height: 1.5;
+  min-height: 100dvh;
+}
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  line-height: 1.12;
+  margin: 0;
+  letter-spacing: 0.005em;
+}
+p {
+  margin: 0;
+}
+a {
+  color: inherit;
+  text-decoration-color: var(--margin);
+  text-underline-offset: 0.18em;
+  text-decoration-thickness: 2px;
+}
+button,
+input,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+}
+:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+.num {
+  font-variant-numeric: tabular-nums lining-nums;
+}
+.visually-hidden {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ---------- Ledger page: ruled lines + double margin line ---------- */
+.ledger {
+  position: relative;
+  background-color: var(--page);
+  background-image:
+    linear-gradient(
+      to right,
+      transparent 1.5rem,
+      var(--margin) 1.5rem,
+      var(--margin) calc(1.5rem + 1.5px),
+      transparent calc(1.5rem + 1.5px),
+      transparent calc(1.5rem + 4.5px),
+      var(--margin) calc(1.5rem + 4.5px),
+      var(--margin) calc(1.5rem + 6px),
+      transparent calc(1.5rem + 6px)
+    ),
+    repeating-linear-gradient(to bottom, transparent 0 calc(var(--line) - 1px), var(--rule) calc(var(--line) - 1px) var(--line));
+  padding-left: calc(1.5rem + 6px + 1rem);
+  padding-right: var(--gutter);
+}
+
+/* Accountant's double underline for totals. */
+.double-rule {
+  border-bottom: 3px double currentColor;
+  padding-bottom: 0.1em;
+}
+
+/* ---------- Buttons ---------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 3rem;
+  padding: 0.5rem 1.25rem;
+  border-radius: var(--radius);
+  border: 2px solid var(--binding);
+  background: var(--binding);
+  color: var(--binding-ink);
+  font-weight: 600;
+  font-size: var(--t-md);
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform 0.08s ease, filter 0.15s ease;
+}
+.btn:hover {
+  filter: brightness(1.08);
+}
+.btn:active {
+  transform: translateY(1px);
+}
+.btn[disabled] {
+  opacity: 0.45;
+  cursor: not-allowed;
+  filter: none;
+}
+.btn.secondary {
+  background: transparent;
+  color: var(--binding);
+}
+.btn.quiet {
+  background: transparent;
+  border-color: transparent;
+  color: var(--ink-soft);
+  padding-inline: 0.5rem;
+}
+.btn.block {
+  width: 100%;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.25rem;
+  padding: 0.25rem 0.85rem;
+  border-radius: 999px;
+  border: 1.5px solid var(--rule);
+  background: var(--page-2);
+  color: var(--ink);
+  font-size: var(--t-sm);
+  font-weight: 500;
+  cursor: pointer;
+}
+.chip[aria-pressed='true'] {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--page);
+}
+
+.hand {
+  font-family: var(--font-hand);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
