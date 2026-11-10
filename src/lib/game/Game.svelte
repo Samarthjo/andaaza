@@ -7,7 +7,7 @@
   import WeekStrip from '$lib/components/WeekStrip.svelte';
   import { daysBetween, isDateKey, istDateKey } from '$lib/core/date';
   import { puzzleFor, type Puzzle } from '$lib/data/puzzle';
-  import { finishGame, lockGuess, openGame } from '$lib/state/game';
+  import { finishGame, lockGuess, openGame, recorded, reportPending } from '$lib/state/game';
   import { online, puzzleStats, type PuzzleStats } from '$lib/state/online';
   import { settings } from '$lib/state/settings.svelte';
   import type { SavedGame } from '$lib/state/storage';
@@ -79,7 +79,11 @@
 
   async function refreshStats() {
     if (!online || !puzzle) return;
-    stats = await puzzleStats(puzzle.dateKey);
+    // Wait for this player's own writes (and any backfill) so the charts include them.
+    await reportPending();
+    await recorded();
+    const s = await puzzleStats(puzzle.dateKey);
+    if (s) stats = s;
   }
 
   async function settle() {
@@ -110,7 +114,7 @@
     draft = '';
     phase = 'reveal';
     settle();
-    if (online) setTimeout(refreshStats, 700);
+    refreshStats();
   }
 
   function next() {
@@ -123,7 +127,7 @@
     } else {
       game = finishGame(puzzle, game, settings.value.nickname);
       phase = 'results';
-      if (online) setTimeout(refreshStats, 700);
+      refreshStats();
     }
     settle();
   }

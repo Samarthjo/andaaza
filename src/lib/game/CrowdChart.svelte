@@ -42,7 +42,7 @@
       </span>
     {/each}
   </div>
-  {#if !hasData}<figcaption>No other guesses yet</figcaption>{/if}
+  {#if counts && !hasData}<figcaption>{kind === 'score' ? 'No scores yet' : 'No other guesses yet'}</figcaption>{/if}
 </figure>
 
 <style>

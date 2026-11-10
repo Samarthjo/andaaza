@@ -9,31 +9,67 @@ const URL_BASE = (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.repl
 const ANON_KEY = (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined) ?? '';
 
 export const online = Boolean(URL_BASE && ANON_KEY);
+/** Sign-in, theme unlocks and cross-device sync (needs Supabase Auth URLs configured). */
+export const accountsEnabled = online && import.meta.env.VITE_ACCOUNTS === '1';
+export const SUPABASE_URL = URL_BASE;
+export const SUPABASE_KEY = ANON_KEY;
 
-async function rpc<T>(fn: string, args: Record<string, unknown>, timeoutMs = 6000): Promise<T | null> {
+/** Access token of the signed-in player, set by the auth store. Null for guests. */
+let accessToken: string | null = null;
+export function setAccessToken(token: string | null) {
+  accessToken = token;
+}
+
+function headers(): Record<string, string> {
+  const bearer = accessToken ?? (ANON_KEY.startsWith('eyJ') ? ANON_KEY : null);
+  return {
+    apikey: ANON_KEY,
+    // Legacy anon keys and user sessions are JWTs and go in Authorization; sb_publishable_ keys must not.
+    ...(bearer ? { Authorization: `Bearer ${bearer}` } : {}),
+    'Content-Type': 'application/json'
+  };
+}
+
+async function request<T>(path: string, init: RequestInit, timeoutMs = 6000): Promise<T | null> {
   if (!online) return null;
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
-    const res = await fetch(`${URL_BASE}/rest/v1/rpc/${fn}`, {
-      method: 'POST',
-      headers: {
-        apikey: ANON_KEY,
-        // Legacy anon keys are JWTs and also go in Authorization; new sb_publishable_ keys must not.
-        ...(ANON_KEY.startsWith('eyJ') ? { Authorization: `Bearer ${ANON_KEY}` } : {}),
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(args),
+    const res = await fetch(`${URL_BASE}${path}`, {
+      ...init,
+      headers: { ...headers(), ...(init.headers ?? {}) },
       signal: ctrl.signal
     });
     if (!res.ok) return null;
     const text = await res.text();
-    return text ? (JSON.parse(text) as T) : (null as T);
+    // Void functions answer 204 with no body: report success as an empty object, failure as null.
+    return (text ? JSON.parse(text) : {}) as T;
   } catch {
     return null;
   } finally {
     clearTimeout(timer);
   }
+}
+
+function rpc<T>(fn: string, args: Record<string, unknown>, timeoutMs = 6000): Promise<T | null> {
+  return request<T>(`/rest/v1/rpc/${fn}`, { method: 'POST', body: JSON.stringify(args) }, timeoutMs);
+}
+
+/** Signed-in only: this player's synced games. */
+export function fetchUserGames() {
+  return request<{ puzzle_date: string; game: unknown }[]>('/rest/v1/andaaza_user_games?select=puzzle_date,game', {
+    method: 'GET'
+  });
+}
+
+/** Signed-in only: save or update synced games. */
+export function upsertUserGames(rows: { puzzle_date: string; game: unknown }[]) {
+  if (!rows.length) return Promise.resolve({});
+  return request('/rest/v1/andaaza_user_games', {
+    method: 'POST',
+    headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+    body: JSON.stringify(rows.map((r) => ({ ...r, updated_at: new Date().toISOString() })))
+  });
 }
 
 export function recordAnswer(a: {
@@ -92,7 +128,10 @@ export interface BoardRow {
 }
 
 export async function leaderboard(range: 'today' | 'week', today: string): Promise<BoardRow[] | null> {
-  return rpc<BoardRow[]>('andaaza_leaderboard', { p_range: range, p_today: today });
+  return rpc<BoardRow[]>('andaaza_leaderboard', {
+    p_range: range,
+    p_today: today
+  });
 }
 
 export function submitQuestion(q: { question: string; answer: string; source: string; name: string }) {

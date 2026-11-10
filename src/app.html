@@ -17,7 +17,7 @@
       try {
         var s = JSON.parse(localStorage.getItem('andaaza:v1:settings') || '{}');
         var el = document.documentElement;
-        if (s.palette) el.dataset.palette = s.palette;
+        if (s.paletteActive) el.dataset.palette = s.paletteActive;
         if (s.theme) el.dataset.theme = s.theme;
       } catch (e) {}
     </script>

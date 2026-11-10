@@ -3,7 +3,8 @@
   import { onMount } from 'svelte';
   import { istDateKey } from '$lib/core/date';
   import { formatFactor } from '$lib/core/number';
-  import { leaderboard, online, type BoardRow } from '$lib/state/online';
+  import { auth } from '$lib/state/auth.svelte';
+  import { accountsEnabled, leaderboard, online, type BoardRow } from '$lib/state/online';
   import { settings } from '$lib/state/settings.svelte';
 
   let range = $state<'today' | 'week'>('today');
@@ -35,6 +36,9 @@
   {#if !online}
     <p class="sub">The leaderboard isn’t switched on for this copy of Andaaza. Your own scores are on the <a href="{base}/stats">stats page</a>.</p>
   {:else}
+    {#if accountsEnabled && !auth.signedIn}
+      <p class="sub">Log in from the You panel (top right) to put your name on the board.</p>
+    {:else}
     <form
       class="nick"
       onsubmit={(e) => {
@@ -49,6 +53,7 @@
       </div>
       <p class="help">Applies to puzzles you finish from now on.</p>
     </form>
+    {/if}
 
     <div class="filters" role="group" aria-label="Period">
       <button class="chip" aria-pressed={range === 'today'} onclick={() => ((range = 'today'), load())}>Today</button>

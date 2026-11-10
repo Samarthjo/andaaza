@@ -9,6 +9,26 @@
   }: { puzzle: Puzzle; status: 'new' | 'started' | 'done'; onplay: () => void } = $props();
 
   const cta = $derived(status === 'done' ? 'View results' : status === 'started' ? 'Continue' : 'Play today’s');
+
+  // "padha-likha" hangs centred under the caret, nudged sideways only if it would spill off the card.
+  let headline: HTMLElement | undefined = $state();
+  let insert: HTMLElement | undefined = $state();
+  let shift = $state(0);
+  function clampInsert() {
+    if (!headline || !insert) return;
+    const box = headline.getBoundingClientRect();
+    const r = insert.getBoundingClientRect();
+    const left = r.left - shift;
+    const right = r.right - shift;
+    shift = left < box.left ? box.left - left : right > box.right ? box.right - right : 0;
+  }
+  $effect(() => {
+    if (!headline) return;
+    const ro = new ResizeObserver(clampInsert);
+    ro.observe(headline);
+    document.fonts?.ready.then(clampInsert);
+    return () => ro.disconnect();
+  });
 </script>
 
 <div class="intro">
@@ -17,9 +37,14 @@
     <span class="no num">No. {puzzle.number}</span>
   </div>
 
-  <h1 class="headline" aria-label="Ek padha-likha tukka maaro.">
-    <span class="line" aria-hidden="true">Ek<span class="caret">^</span>tukka maaro.</span>
-    <span class="insert" aria-hidden="true">padha-likha</span>
+  <h1 class="headline" aria-label="Ek padha-likha tukka maaro." bind:this={headline}>
+    <span class="line" aria-hidden="true"
+      >Ek<span class="gap"
+        ><svg class="caret" viewBox="0 0 24 16" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"
+          ><path d="M2.5 14.5 Q7 8 12 2 Q16.5 8.5 21.5 14" /></svg
+        ><span class="insert" bind:this={insert} style:--shift="{shift}px">padha-likha</span></span
+      >tukka maaro.</span
+    >
   </h1>
 
   <p class="meta">Andaaza #{puzzle.number} · {formatLongDate(puzzle.dateKey).replace(/^\w+, /, '')}</p>
@@ -54,39 +79,49 @@
     font-weight: 700;
   }
   .headline {
+    justify-self: stretch;
+    display: grid;
+    justify-items: center;
     font-family: var(--font-ui);
     font-weight: 800;
     font-size: clamp(2.7rem, 11vw, 5.2rem);
     line-height: 0.95;
     letter-spacing: -0.035em;
     margin-top: clamp(1.5rem, 6vw, 3.5rem);
-    display: grid;
-    justify-items: center;
+    /* Room for the hand-written insert that hangs below the line. */
+    padding-bottom: 1.15em;
   }
   .line {
-    position: relative;
     white-space: nowrap;
   }
-  .caret {
+  /* The gap between "Ek" and "tukka": a proof-reader's caret with the insert written underneath it. */
+  .gap {
+    position: relative;
     display: inline-block;
-    width: 0.35em;
-    margin: 0 0.06em;
-    font-family: var(--font-hand);
-    font-weight: 700;
+    width: 0.42em;
+    height: 0.7em;
     color: var(--hl-text);
-    font-size: 0.55em;
-    vertical-align: -0.55em;
-    letter-spacing: 0;
+  }
+  .caret {
+    position: absolute;
+    left: 50%;
+    top: calc(100% - 0.08em);
+    width: 0.4em;
+    height: 0.27em;
+    transform: translateX(-50%);
+    overflow: visible;
   }
   .insert {
+    position: absolute;
+    left: 50%;
+    top: calc(100% + 0.62em);
+    transform: translateX(calc(-50% + var(--shift, 0px))) rotate(-3deg);
     font-family: var(--font-hand);
     font-weight: 700;
-    font-size: 0.78em;
+    font-size: 0.64em;
     letter-spacing: 0;
-    line-height: 1.1;
-    color: var(--hl-text);
-    transform: rotate(-3deg);
-    margin-top: 0.08em;
+    line-height: 1;
+    white-space: nowrap;
   }
   .meta {
     margin-top: clamp(1rem, 4vw, 2.2rem);

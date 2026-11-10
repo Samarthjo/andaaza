@@ -28,6 +28,8 @@ const writes = [];
 
 const browser = await chromium.launch({ proxy });
 const context = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: scale });
+// Anything else on Supabase (auth, synced games) never reaches the real project either.
+await context.route(/supabase\.co\//, (route) => route.fulfill({ status: 404, contentType: 'application/json', body: '{}' }));
 await context.route('**/rest/v1/rpc/**', async (route) => {
   const fn = route.request().url().split('/rpc/')[1];
   if (fn.startsWith('andaaza_puzzle_stats')) {
@@ -64,8 +66,24 @@ const playBtn = () => page.locator('.gcard').getByRole('button', { name: /Play t
 
 // Landing: intro card first, landing sections below
 await page.goto(base + '/', { waitUntil: 'networkidle' });
+await page.evaluate(() => document.fonts.ready);
 await shot('intro');
 if (!(await playBtn().count())) fail('intro card has no play button');
+// "padha-likha" hangs under the caret: centred on it unless it would spill out of the headline.
+const caretFit = await page.evaluate(() => {
+  const c = document.querySelector('.intro .caret').getBoundingClientRect();
+  const t = document.querySelector('.intro .insert').getBoundingClientRect();
+  const h = document.querySelector('.intro .headline').getBoundingClientRect();
+  return {
+    off: Math.abs(c.left + c.width / 2 - (t.left + t.width / 2)),
+    below: t.top - c.bottom,
+    inside: t.left >= h.left - 1 && t.right <= h.right + 1,
+    atEdge: Math.abs(t.left - h.left) < 1.5 || Math.abs(t.right - h.right) < 1.5
+  };
+});
+if (!caretFit.inside) fail('padha-likha spills out of the headline');
+if (caretFit.off > 2 && !caretFit.atEdge) fail(`padha-likha not under the caret (${caretFit.off}px off)`);
+if (caretFit.below < -4) fail(`padha-likha overlaps the caret (${caretFit.below}px)`);
 if (!(await page.locator('#how-title').count())) fail('how to play missing on intro');
 await page.locator('#what-title').scrollIntoViewIfNeeded();
 await page.waitForTimeout(500);
@@ -96,11 +114,11 @@ if ((await page.locator('.chart .bar').count()) !== 21) fail('crowd chart does n
 if (!/closer than \d+% of players/.test(await page.locator('.landed').innerText())) fail('closer-than line missing');
 await shot('q1-reveal');
 await shot('q1-reveal-full', true);
-await page.getByRole('button', { name: /Napkin math/ }).click();
+await page.getByRole('button', { name: /Mota hisab/ }).click();
 await page.waitForTimeout(500);
 if (!(await page.getByText('One way to estimate it').isVisible())) fail('napkin panel did not open');
 await shot('napkin');
-await page.getByRole('button', { name: /Napkin math/ }).click();
+await page.getByRole('button', { name: /Mota hisab/ }).click();
 await page.locator('button.next').click();
 
 // Q2: calculator
@@ -135,7 +153,7 @@ await page.waitForTimeout(600);
 await page.locator('button.next', { hasText: 'See results' }).click();
 await page.locator('.results').waitFor();
 await page.waitForTimeout(1300);
-if (!/top \d+%/i.test(await page.locator('.results .top .tag').innerText())) fail('Top % tag missing');
+if (!/(top|bottom) \d+%/i.test(await page.locator('.results .top .tag').innerText())) fail('rank tag missing');
 await shot('results');
 await shot('results-full', true);
 const wrote = writes.filter((w) => w.startsWith('andaaza_record_answer')).length;
@@ -166,7 +184,11 @@ await page.waitForTimeout(400);
 // Profile panel
 await page.getByRole('button', { name: 'You', exact: true }).click();
 await page.waitForTimeout(500);
-if (!(await page.getByText('day streak').isVisible())) fail('profile panel missing streak');
+if (!(await page.getByText('Day streak').isVisible())) fail('profile panel missing streak');
+if ((await page.locator('.themes .theme').count()) !== 4) fail('profile panel should offer 4 themes');
+await page.locator('.themes .theme', { hasText: 'Neel' }).click();
+await page.waitForTimeout(300);
+if ((await page.evaluate(() => document.documentElement.dataset.palette)) !== 'neel') fail('picking Neel in the You panel did not apply');
 await sheetFits('profile');
 await shot('profile');
 await page.getByRole('button', { name: 'Close', exact: true }).click();
@@ -187,11 +209,10 @@ await page.goto(base + '/stats', { waitUntil: 'networkidle' });
 const played = await page.locator('.tiles div', { hasText: 'Finished' }).locator('dd').innerText();
 if (played.trim() !== '1') fail(`stats finished = ${played}`);
 
-// Settings: dark + Neel
+// Settings: dark mode (the colour theme was picked in the You panel)
 await page.goto(base + '/', { waitUntil: 'networkidle' });
 await page.getByRole('button', { name: 'Settings' }).click();
 await page.waitForTimeout(400);
-await page.getByRole('button', { name: /Neel/ }).click();
 await page.getByRole('button', { name: 'Dark' }).click();
 await sheetFits('settings');
 await shot('settings');
@@ -208,6 +229,16 @@ await page.goto(base + '/', { waitUntil: 'networkidle' });
 await shot('desktop-intro');
 const dg = await page.getByRole('button', { name: 'You', exact: true }).boundingBox();
 if (!dg || dg.x < 1280 - 80) fail(`profile button not at far right on desktop: x=${dg?.x}`);
+await page.goto(base + '/play', { waitUntil: 'networkidle' });
+await page.locator('.results').waitFor();
+await page.waitForTimeout(1400);
+const cols = await page.evaluate(() => {
+  const a = document.querySelector('.results .split .top').getBoundingClientRect();
+  const b = document.querySelector('.results .split .dist').getBoundingClientRect();
+  return { sideBySide: b.left >= a.right, sameRow: Math.abs(a.top - b.top) < 4 };
+});
+if (!cols.sideBySide || !cols.sameRow) fail(`desktop results should put score and bars side by side: ${JSON.stringify(cols)}`);
+await shot('desktop-results');
 await page.goto(base + '/play?d=2026-11-02', { waitUntil: 'networkidle' });
 await input().fill('90');
 await page.getByRole('button', { name: /Lock it in/ }).click();
@@ -219,6 +250,27 @@ await page.goto(base + '/', { waitUntil: 'networkidle' });
 await page.locator('#what-title').scrollIntoViewIfNeeded();
 await page.waitForTimeout(600);
 await shot('desktop-what');
+
+// A finished game that never reached the server is sent once on the next visit.
+const sent = writes.filter((w) => w.startsWith('andaaza_record_game')).length;
+await page.evaluate(() => {
+  for (const k of Object.keys(localStorage)) {
+    if (!k.startsWith('andaaza:v1:game:')) continue;
+    const g = JSON.parse(localStorage.getItem(k));
+    if (g.completed) localStorage.setItem(k, JSON.stringify({ ...g, reported: false }));
+  }
+});
+await page.goto(base + '/stats', { waitUntil: 'networkidle' });
+await page.waitForTimeout(800);
+if (writes.filter((w) => w.startsWith('andaaza_record_game')).length !== sent + 1) fail('unreported game was not backfilled');
+const flagged = await page.evaluate(() =>
+  Object.keys(localStorage)
+    .filter((k) => k.startsWith('andaaza:v1:game:'))
+    .map((k) => JSON.parse(localStorage.getItem(k)))
+    .filter((g) => g.completed)
+    .every((g) => g.reported === true)
+);
+if (!flagged) fail('backfilled game not marked as reported');
 
 // No horizontal overflow at 320px
 await page.setViewportSize({ width: 320, height: 700 });

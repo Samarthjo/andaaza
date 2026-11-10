@@ -92,7 +92,7 @@
   .prompt {
     font-family: var(--font-ui);
     font-weight: 800;
-    font-size: clamp(1.6rem, 6vw, 2.5rem);
+    font-size: clamp(1.45rem, 5.4vw, 2.25rem);
     line-height: 1.12;
     letter-spacing: -0.02em;
     margin: 1.25rem 0 0.75rem;

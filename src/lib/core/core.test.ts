@@ -17,6 +17,7 @@ import {
   closerThanPercent,
   guessBin,
   guessPosition,
+  rankLabel,
   scoreBin,
   topPercent,
   dayScore,
@@ -152,6 +153,20 @@ describe('scoring', () => {
     const solo = Array(BINS).fill(0);
     solo[5] = 1;
     expect(topPercent(solo, 5)).toBeNull();
+  });
+  it('rank label flips to bottom for the worse half', () => {
+    const counts = Array(BINS).fill(0);
+    counts[2] = 9; // nine others did better
+    counts[10] = 1; // me
+    expect(rankLabel(counts, 10)).toBe('Bottom 10%');
+    expect(rankLabel(counts, 2)).toBe('Top 50%');
+    const best = Array(BINS).fill(0);
+    best[0] = 1; // me
+    best[8] = 19;
+    expect(rankLabel(best, 0)).toBe('Top 5%');
+    const solo = Array(BINS).fill(0);
+    solo[5] = 1;
+    expect(rankLabel(solo, 5)).toBeNull();
   });
   it('emoji', () => {
     expect(emojiFor(1.1)).toBe('🎯');

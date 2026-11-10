@@ -2,7 +2,8 @@
   import { base } from '$app/paths';
   import { formatShortDate, istDateKey, playableDates, puzzleNumber } from '$lib/core/date';
   import { formatFactor } from '$lib/core/number';
-  import { leaderboard, online, type BoardRow } from '$lib/state/online';
+  import { auth } from '$lib/state/auth.svelte';
+  import { accountsEnabled, leaderboard, online, type BoardRow } from '$lib/state/online';
   import { settings } from '$lib/state/settings.svelte';
   import { loadGame } from '$lib/state/storage';
   import Icon from './Icon.svelte';
@@ -84,7 +85,9 @@
           <h2>Leaderboard <span class="dot">·</span> Today</h2>
           <a class="more" href="{base}/leaderboard" onclick={close}>See full leaderboard <span aria-hidden="true">→</span></a>
         </div>
-        {#if !settings.value.nickname}
+        {#if accountsEnabled && !auth.signedIn}
+          <p class="prompt">Log in from the You panel to join the leaderboard.</p>
+        {:else if !settings.value.nickname}
           <p class="prompt">Add your name in the You panel to join the leaderboard.</p>
         {/if}
         {#if board && board.length}

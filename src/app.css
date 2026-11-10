@@ -18,6 +18,24 @@
   --shadow: 0 10px 24px -12px rgb(80 45 10 / 0.45);
   --float: rgb(255 250 240 / 0.96);
 }
+[data-palette='gulabi'] {
+  --page: #fbeef1;
+  --page-2: #f4d9e0;
+  --surface: #fffafc;
+  --ink: #2a1520;
+  --ink-soft: #6a4a58;
+  --binding: #b0306a;
+  --binding-ink: #fff0f6;
+  --rule: #ecc9d3;
+  --hl: #f5cd4f;
+  --answer: #b3261e;
+  --accent: #b0306a;
+  --good: #2d7a4b;
+  --warn: #b0561a;
+  --bad: #b2312a;
+  --shadow: 0 10px 24px -12px rgb(110 30 70 / 0.38);
+  --float: rgb(255 250 252 / 0.96);
+}
 [data-palette='neel'] {
   --page: #eceffa;
   --page-2: #dbe1f6;
@@ -74,6 +92,24 @@
   --shadow: 0 10px 24px -12px rgb(0 0 0 / 0.75);
   --float: rgb(44 33 25 / 0.96);
 }
+[data-palette='gulabi'][data-theme='dark'] {
+  --page: #1d1016;
+  --page-2: #2c1821;
+  --surface: #26141d;
+  --ink: #f7dfe8;
+  --ink-soft: #caa5b5;
+  --binding: #ff8fc0;
+  --binding-ink: #1d1016;
+  --rule: #3d2230;
+  --hl: rgb(255 143 192 / 0.3);
+  --answer: #ff9fb4;
+  --accent: #ff8fc0;
+  --good: #7fcf98;
+  --warn: #f0a466;
+  --bad: #f08a7e;
+  --shadow: 0 10px 24px -12px rgb(0 0 0 / 0.75);
+  --float: rgb(44 24 33 / 0.96);
+}
 [data-palette='neel'][data-theme='dark'] {
   --page: #0f1430;
   --page-2: #1a2250;
@@ -128,6 +164,24 @@
     --bad: #f08a7e;
     --shadow: 0 10px 24px -12px rgb(0 0 0 / 0.75);
     --float: rgb(44 33 25 / 0.96);
+  }
+  [data-palette='gulabi'][data-theme='system'] {
+    --page: #1d1016;
+    --page-2: #2c1821;
+    --surface: #26141d;
+    --ink: #f7dfe8;
+    --ink-soft: #caa5b5;
+    --binding: #ff8fc0;
+    --binding-ink: #1d1016;
+    --rule: #3d2230;
+    --hl: rgb(255 143 192 / 0.3);
+    --answer: #ff9fb4;
+    --accent: #ff8fc0;
+    --good: #7fcf98;
+    --warn: #f0a466;
+    --bad: #f08a7e;
+    --shadow: 0 10px 24px -12px rgb(0 0 0 / 0.75);
+    --float: rgb(44 24 33 / 0.96);
   }
   [data-palette='neel'][data-theme='system'] {
     --page: #0f1430;
@@ -407,6 +461,7 @@ select {
   interpolate-size: allow-keywords;
 }
 .lbl {
+  font-family: var(--font-ui);
   font-size: 0.78rem;
   font-weight: 700;
   letter-spacing: 0.16em;

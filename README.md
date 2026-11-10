@@ -42,8 +42,8 @@ npm test
 
 Unit tests cover number parsing (lakh/crore, k/M/B, Indian grouping), scoring, IST
 date rollover, the calculator, stats/streaks, and the question bank (unique ids,
-every question scheduled once, napkin maths within 1.5× of the answer, reruns
-deterministic).
+every question scheduled once, the mota hisab working within 1.5× of the answer,
+reruns deterministic) and the sync merge rules.
 
 End-to-end play-through (needs a running preview server and Playwright):
 
@@ -75,7 +75,7 @@ questions (marked "Rerun") until new ones are added to `SCHEDULE`.
    confidence and a napkin-maths walkthrough.
 2. Add a triple of ids to the end of `src/lib/data/schedule.ts`.
 3. `npm test`: the bank tests fail on a missing field, duplicate id, unscheduled
-   question, or napkin maths that lands more than 1.5× from the answer.
+   question, or a mota hisab (the `napkin` field) that lands more than 1.5× from the answer.
 
 ## Before a public launch
 
@@ -103,6 +103,31 @@ Supabase project (`andaaza`, ref `pqvppabcdbenzrlbxzkw`, Mumbai region).
 
 To run without a backend, delete `.env.production`; the game falls back to fully
 offline play (charts show only your own marker).
+
+Finished games that never reached the backend (played offline, or before online
+mode) are sent once on the next visit, so a player's own result always shows in
+the charts.
+
+## Accounts (off until Supabase Auth is set up)
+
+Builds with `VITE_ACCOUNTS=1` add passwordless email sign-in to the You panel.
+Signed-in players get their games synced across devices, a leaderboard entry and
+the colour themes (guests stay on Haldi). Without the flag, themes are open to
+everyone and no account UI shows.
+
+1. Apply `supabase/migrations/20261110000000_accounts.sql` (per-player
+   `andaaza_user_games` table with row-level security, leaderboard limited to
+   signed-in players).
+2. In Supabase, Authentication → URL Configuration: set the Site URL to the live
+   site and add `https://<site>/**` for every host the game runs on (Vercel, GitHub
+   Pages, `http://localhost:5173/**`) to Redirect URLs.
+3. Set up custom SMTP (Authentication → Emails). The built-in sender is only for
+   testing and allows a few emails an hour.
+4. Add `VITE_ACCOUNTS=1` to `.env.production` and redeploy.
+
+`npm run build` with `VITE_ACCOUNTS=1`, then `node tests/e2e/accounts.mjs`, checks
+the guest view, the theme lock and the sign-in email request against stubbed
+Supabase calls.
 
 ## Credits
 

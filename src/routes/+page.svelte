@@ -38,7 +38,7 @@
         <div class="copy">
           <p>
             Andaaza is a daily game of smart guessing: three questions about India, one guess each. No Googling, just
-            napkin maths.
+            <em>mota hisab</em>.
           </p>
           <p>
             Around 499 CE, Aryabhata worked out that a circle 20,000 across is about 62,832 around. He called it

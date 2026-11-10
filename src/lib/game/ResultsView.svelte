@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import { fly } from 'svelte/transition';
   import { formatFactor } from '$lib/core/number';
-  import { dayScore, factorOf, scoreBin, scorePosition, sideOf, topPercent, verdictFor } from '$lib/core/score';
+  import { dayScore, factorOf, rankLabel, scoreBin, scorePosition, sideOf, verdictFor } from '$lib/core/score';
   import type { Puzzle } from '$lib/data/puzzle';
   import { copyText, shareCard, shareText } from '$lib/share';
   import CardHeader from './CardHeader.svelte';
@@ -17,7 +17,9 @@
 
   const factors = $derived(puzzle.questions.map((q, i) => factorOf(guesses[i], q.answer)));
   const score = $derived(dayScore(factors));
-  const top = $derived(scoreCrowd ? topPercent(scoreCrowd, scoreBin(score)) : null);
+  const rank = $derived(scoreCrowd ? rankLabel(scoreCrowd, scoreBin(score)) : null);
+  const players = $derived(scoreCrowd ? scoreCrowd.reduce((a, b) => a + b, 0) : 0);
+  const verdict = $derived(verdictFor(score));
   let status = $state('');
   let shown = $state(1);
 
@@ -50,15 +52,21 @@
 <div class="results">
   <CardHeader {puzzle} answered={3} current="results" onjump={onreview} />
 
-  <div class="top" in:fly={{ y: 14, duration: 340, delay: 80 }}>
-    <span class="lbl">Score</span>
-    <p class="score num">{formatFactor(shown)}</p>
-    <span class="tag">{top !== null ? `Top ${top}%` : verdictFor(score).label}</span>
-  </div>
-
-  <div class="dist" in:fly={{ y: 14, duration: 340, delay: 200 }}>
-    <span class="lbl">How everyone did</span>
-    <CrowdChart kind="score" counts={scoreCrowd} you={scorePosition(score)} labels={['1×', '10×', '100×', '1,000×']} />
+  <div class="split" in:fly={{ y: 14, duration: 340, delay: 80 }}>
+    <div class="top">
+      <span class="lbl">Your score</span>
+      <p class="score num">{formatFactor(shown)}</p>
+      <p class="verdict">{verdict.label}</p>
+      {#if rank !== null}
+        <p class="sub"><span class="tag">{rank}</span> of {players.toLocaleString('en-IN')} players</p>
+      {:else if players === 1}
+        <p class="sub">First to finish this one.</p>
+      {/if}
+    </div>
+    <div class="dist">
+      <span class="lbl">How everyone did</span>
+      <CrowdChart kind="score" counts={scoreCrowd} you={scorePosition(score)} labels={['1×', '10×', '100×', '1,000×']} />
+    </div>
   </div>
 
   <div class="qs" in:fly={{ y: 14, duration: 340, delay: 300 }}>
@@ -94,21 +102,64 @@
     --marker: #1b1a2e;
     --marker-ink: var(--haldi);
   }
-  .top {
+  .split {
     display: grid;
-    justify-items: start;
-    gap: 0.35rem;
+    gap: 1.25rem;
     margin-top: 0.5rem;
   }
+  @media (min-width: 40rem) {
+    .split {
+      grid-template-columns: minmax(0, 0.8fr) 1px minmax(0, 1.5fr);
+      gap: 1.75rem;
+    }
+    .split::before {
+      content: '';
+      grid-column: 2;
+      grid-row: 1;
+      background: color-mix(in srgb, currentColor 30%, transparent);
+    }
+    .top {
+      grid-column: 1;
+      grid-row: 1;
+    }
+    .dist {
+      grid-column: 3;
+      grid-row: 1;
+    }
+  }
+  .top {
+    display: grid;
+    align-content: start;
+    justify-items: start;
+    gap: 0.15rem;
+    min-width: 0;
+  }
   .score {
+    margin-top: 0.4rem;
     font-family: var(--font-ui);
     font-weight: 800;
-    font-size: clamp(4.2rem, 19vw, 7rem);
-    line-height: 0.95;
-    letter-spacing: -0.045em;
+    font-size: clamp(2.8rem, 10vw, 3.8rem);
+    line-height: 1;
+    letter-spacing: -0.04em;
+  }
+  .verdict {
+    font-family: var(--font-ui);
+    font-weight: 800;
+    font-size: clamp(1.4rem, 4.6vw, 1.75rem);
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+  }
+  .sub {
+    margin-top: 0.7rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.45rem;
+    font-weight: 700;
+    font-size: 1rem;
   }
   .tag {
-    padding: 0.2rem 0.75rem;
+    padding: 0.2rem 0.7rem;
     border-radius: 999px;
     background: #1b1a2e;
     color: var(--haldi);
@@ -117,7 +168,11 @@
     letter-spacing: 0.14em;
     text-transform: uppercase;
   }
-  .dist,
+  .dist {
+    display: grid;
+    gap: 0.2rem;
+    min-width: 0;
+  }
   .qs {
     display: grid;
     gap: 0.25rem;

@@ -23,5 +23,8 @@
     "typescript": "^5.9.3",
     "vite": "^7.0.0",
     "vitest": "^3.2.7"
+  },
+  "dependencies": {
+    "@supabase/auth-js": "^2.118.0"
   }
 }

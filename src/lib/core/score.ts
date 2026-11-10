@@ -114,6 +114,14 @@ export function topPercent(counts: number[], myBin: number, includesSelf = true)
   return clamp(pct, 1, 100);
 }
 
+/** "Top 12%" for the better half of players, "Bottom 8%" for the rest. Null when nobody else has played. */
+export function rankLabel(counts: number[], myBin: number): string | null {
+  const top = topPercent(counts, myBin);
+  if (top === null) return null;
+  if (top <= 50) return `Top ${top}%`;
+  return `Bottom ${topPercent([...counts].reverse(), counts.length - 1 - myBin)}%`;
+}
+
 export function emojiFor(factor: number): string {
   if (factor <= 1.25) return '🎯';
   if (factor <= 2) return '🟢';

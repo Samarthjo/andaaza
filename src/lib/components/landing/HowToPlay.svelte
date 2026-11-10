@@ -62,7 +62,7 @@
     <li class="step" class:in={seen[0]} use:inview={startTyping}>
       <div class="copy">
         <h3><span class="hl">1. Make your guess</span></h3>
-        <p>No Googling. Work it out on a napkin, or use the built-in calculator.</p>
+        <p>No Googling. Do the mota hisab in your head, or use the built-in calculator.</p>
       </div>
       <div class="mock m1" aria-hidden="true">
         <div class="mrow"><span>Q1 / 3</span><span class="mbrand">Andaaza</span></div>

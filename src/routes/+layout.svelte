@@ -7,6 +7,8 @@
   import MenuPanel from '$lib/components/MenuPanel.svelte';
   import ProfilePanel from '$lib/components/ProfilePanel.svelte';
   import SettingsDialog from '$lib/components/SettingsDialog.svelte';
+  import { auth } from '$lib/state/auth.svelte';
+  import { reportPending, setSignedIn } from '$lib/state/game';
   import { online } from '$lib/state/online';
   import { settings } from '$lib/state/settings.svelte';
 
@@ -15,7 +17,16 @@
   let settingsOpen = $state(false);
   let youOpen = $state(false);
 
-  onMount(() => settings.load());
+  onMount(() => {
+    settings.load();
+    auth.onChange((signedIn) => {
+      settings.setUnlocked(signedIn);
+      setSignedIn(signedIn);
+    });
+    auth.init();
+    // Finished games that never reached the crowd charts (played offline or before online mode) get sent once.
+    reportPending();
+  });
 
   const isHome = $derived(page.url.pathname === `${base}/` || page.url.pathname === base || page.url.pathname === '/');
 </script>

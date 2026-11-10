@@ -29,7 +29,7 @@
     </div>
   {/if}
   <button class="toggle" aria-expanded={open} aria-controls="napkin-{question.id}" onclick={() => (open = !open)}>
-    <span class="lbl">Napkin math</span>
+    <span class="lbl">Mota hisab</span>
     <span class="chev"><Icon name="chevron-up" size={20} /></span>
   </button>
 </div>
