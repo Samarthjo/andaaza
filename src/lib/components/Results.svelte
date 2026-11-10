@@ -46,9 +46,6 @@
   <p class="eyebrow">{isToday ? 'Today’s total' : `Total for No. ${puzzle.number}`}</p>
   <p class="score num"><span class="double-rule">{formatFactor(score)}</span></p>
   <p class="verdict tone-{verdict.tone}">{verdict.label}</p>
-  <p class="explain">
-    On average you were {formatFactor(score)} away from the answers. Lower is better; 1× is perfect.
-  </p>
 
   <ol class="qs">
     {#each puzzle.questions as q, i (q.id)}
@@ -121,11 +118,6 @@
   .tone-wild {
     color: var(--bad);
   }
-  .explain {
-    font-size: var(--t-sm);
-    color: var(--ink-soft);
-    max-width: 30rem;
-  }
   .qs {
     list-style: none;
     padding: 0;
@@ -147,7 +139,7 @@
   }
   .qrow:hover .qt {
     text-decoration: underline;
-    text-decoration-color: var(--margin);
+    text-decoration-color: var(--answer);
   }
   .qt {
     font-size: var(--t-sm);

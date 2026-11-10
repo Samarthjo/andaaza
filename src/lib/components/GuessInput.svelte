@@ -66,7 +66,7 @@
       autocapitalize="off"
       spellcheck="false"
       enterkeyhint="done"
-      placeholder="Your andaaza"
+      placeholder="Guess"
       value={text}
       oninput={(e) => {
         prefill = sanitizeGuessInput(e.currentTarget.value);
@@ -83,9 +83,9 @@
       = {question.unit.prefix ?? ''}{formatGrouped(value, numberStyle)}
       {#if value >= 1000}<span class="words">({formatWords(value, numberStyle)})</span>{/if}
     {:else if touched && text}
-      <span class="err">Type a number, like 45000, 4.5 lakh or 2 crore.</span>
+      <span class="err">That isn’t a number yet. Try 45000, 4.5 lakh or 2 crore.</span>
     {:else}
-      <span class="hint">Napkin maths welcome. Exact answers not required.</span>
+      <span class="hint">Try 45000, 4.5 lakh or 2 crore.</span>
     {/if}
   </p>
 

@@ -101,3 +101,9 @@ browser. To show "how everyone guessed", the leaderboard and a question inbox:
 
 The anon key is public by design. Consider adding Supabase rate limiting or
 Cloudflare Turnstile before heavy traffic, since anyone can call the insert functions.
+
+## Credits
+
+Icons: [Tabler Icons](https://tabler.io/icons) (MIT License). The Aryabhata
+illustration is an original SVG (`src/lib/components/landing/Aryabhata.svelte`);
+no portrait of Aryabhata survives, so it is a stylised figure, not a likeness.

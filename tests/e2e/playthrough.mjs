@@ -12,9 +12,7 @@ const outDir = process.argv[3] || 'test-results/e2e';
 const scale = Number(process.env.SHOT_SCALE || 1);
 mkdirSync(outDir, { recursive: true });
 
-const proxy = process.env.HTTPS_PROXY
-  ? { server: process.env.HTTPS_PROXY, bypass: '127.0.0.1,localhost' }
-  : undefined;
+const proxy = process.env.HTTPS_PROXY ? { server: process.env.HTTPS_PROXY, bypass: '127.0.0.1,localhost' } : undefined;
 
 const fail = (msg) => {
   console.error('FAIL:', msg);
@@ -36,26 +34,40 @@ const shot = async (name, full = false) => {
   await page.waitForTimeout(400);
   await page.screenshot({ path: path.join(outDir, `${String(n).padStart(2, '0')}-${name}.png`), fullPage: full });
 };
+const input = () => page.locator('input[id^="guess-"]');
 
-// Landing
+// Landing: hero card is live Q1
 await page.goto(base + '/', { waitUntil: 'networkidle' });
 await shot('home');
-await shot('home-full', true);
-await page.getByRole('link', { name: /^Play No\. \d+/ }).click();
-await page.waitForURL(/\/play/);
+if (!(await input().count())) fail('hero card has no guess input');
 
-// Q1: type with lakh/crore words
-const input = () => page.locator('input[id^="guess-"]');
+// How to play animates in; header stays on screen while scrolling
+await page.locator('#how-title').scrollIntoViewIfNeeded();
+await page.waitForTimeout(400);
+await page.locator('.m1').scrollIntoViewIfNeeded();
+await page.waitForTimeout(2000);
+const typed = (await page.locator('.m1 .mtyped').innerText()).trim();
+if (typed !== '190 crore') fail(`demo typing did not finish: "${typed}"`);
+await shot('how-to-play');
+const gear = await page.getByRole('button', { name: 'Settings' }).boundingBox();
+if (!gear || gear.y < 0 || gear.y > 80) fail(`header not sticky, gear at y=${gear?.y}`);
+await page.locator('#what-title').scrollIntoViewIfNeeded();
+await shot('what-is');
+await page.getByText('When does the new puzzle come out?').click();
+if (!(await page.getByText('Every night at 12:00 midnight India time.').isVisible())) fail('FAQ answer did not open');
+await shot('faq');
+await shot('home-full', true);
+
+// Lock Q1 from the hero card
+await page.evaluate(() => window.scrollTo(0, 0));
 await input().fill('40 lakh');
-const preview = await page.locator('.preview').innerText();
+const preview = await page.locator('.preview').first().innerText();
 if (!/40,00,000/.test(preview)) fail(`preview did not show Indian grouping: ${preview}`);
-await shot('q1-typed');
 await page.getByRole('button', { name: 'Lock my guess' }).click();
+await page.waitForURL(/\/play\?r=0/);
 await page.locator('.reveal').waitFor();
-await page.waitForTimeout(1100); // ruler animation
+await page.waitForTimeout(1100);
 await shot('q1-reveal');
-await page.locator('summary', { hasText: 'See the hisaab' }).click();
-await shot('q1-hisaab', true);
 await page.getByRole('button', { name: /On to question 2/ }).click();
 
 // Q2: use the calculator
@@ -67,6 +79,7 @@ await shot('calculator');
 await page.getByRole('button', { name: 'Use as my guess' }).click();
 const v = await input().inputValue();
 if (v !== '1200000') fail(`calculator did not fill guess: ${v}`);
+await shot('q2-typed');
 await page.getByRole('button', { name: 'Lock my guess' }).click();
 await page.locator('.reveal').waitFor();
 await page.getByRole('button', { name: /On to question 3/ }).click();
@@ -74,8 +87,7 @@ await page.getByRole('button', { name: /On to question 3/ }).click();
 // Q3: invalid then valid input
 await input().fill('lots');
 await input().blur();
-const err = await page.locator('.preview .err').count();
-if (!err) fail('no validation message for invalid guess');
+if (!(await page.locator('.preview .err').count())) fail('no validation message for invalid guess');
 if (await page.getByRole('button', { name: 'Lock my guess' }).isEnabled()) fail('lock enabled for invalid guess');
 await input().fill('75');
 await input().press('Enter');
@@ -83,18 +95,27 @@ await page.locator('.reveal').waitFor();
 await page.getByRole('button', { name: 'See my total' }).click();
 await page.locator('.results').waitFor();
 await shot('results');
-await shot('results-full', true);
 
-// Persistence: reload lands on results
+// Persistence: reload lands on results; home hero shows the total
 await page.reload({ waitUntil: 'networkidle' });
 if (!(await page.locator('.results').count())) fail('results not restored after reload');
+await page.goto(base + '/', { waitUntil: 'networkidle' });
+if (!(await page.getByText('Today’s total').count())) fail('hero did not switch to done state');
+await shot('home-done');
 
 // Copy text
 await context.grantPermissions(['clipboard-read', 'clipboard-write'], { origin: new URL(base).origin });
+await page.goto(base + '/play', { waitUntil: 'networkidle' });
 await page.getByRole('button', { name: 'Copy result text' }).click();
 const clip = await page.evaluate(() => navigator.clipboard.readText());
 if (!/^Andaaza No\. \d+/.test(clip) || clip.split('\n').length < 5) fail(`bad share text: ${clip}`);
 console.log('share text:\n' + clip);
+
+// Profile panel
+await page.getByRole('button', { name: 'You', exact: true }).click();
+if (!(await page.getByText('day streak').isVisible())) fail('profile panel missing streak');
+await shot('profile');
+await page.getByRole('button', { name: 'Close', exact: true }).click();
 
 // Archive + replay an old puzzle
 await page.goto(base + '/archive', { waitUntil: 'networkidle' });
@@ -112,8 +133,8 @@ if (!(await page.locator('.notice').count())) fail('future date not refused');
 // Stats
 await page.goto(base + '/stats', { waitUntil: 'networkidle' });
 await shot('stats');
-const played = await page.locator('.tiles dd').first().innerText();
-if (played.trim() !== '1') fail(`stats played = ${played}`);
+const played = await page.locator('.tiles div', { hasText: 'Finished' }).locator('dd').innerText();
+if (played.trim() !== '1') fail(`stats finished = ${played}`);
 
 // Settings: dark + Neel + international numbers
 await page.goto(base + '/', { waitUntil: 'networkidle' });
@@ -125,12 +146,13 @@ await shot('settings');
 await page.getByRole('button', { name: 'Close settings' }).click();
 const attrs = await page.evaluate(() => [document.documentElement.dataset.palette, document.documentElement.dataset.theme]);
 if (attrs.join() !== 'neel,dark') fail(`theme attrs ${attrs}`);
+await shot('home-dark-neel');
 await page.goto(base + '/play', { waitUntil: 'networkidle' });
 await page.getByRole('button', { name: /Q1/ }).click();
 await page.waitForTimeout(1100);
 await shot('dark-neel-reveal');
 
-// Mehendi light
+// Mehendi light, fresh puzzle
 await page.evaluate(() =>
   localStorage.setItem('andaaza:v1:settings', JSON.stringify({ palette: 'mehendi', theme: 'light', numberStyle: 'indian' }))
 );
@@ -139,8 +161,17 @@ await shot('mehendi-question');
 
 // Desktop width
 await page.setViewportSize({ width: 1280, height: 900 });
+await page.evaluate(() =>
+  localStorage.setItem('andaaza:v1:settings', JSON.stringify({ palette: 'haldi', theme: 'light', numberStyle: 'indian' }))
+);
 await page.goto(base + '/', { waitUntil: 'networkidle' });
 await shot('desktop-home');
+await page.locator('.m2').scrollIntoViewIfNeeded();
+await page.waitForTimeout(1500);
+await shot('desktop-how');
+await page.locator('#what-title').scrollIntoViewIfNeeded();
+await page.waitForTimeout(500);
+await shot('desktop-what');
 
 // No horizontal overflow at 320px
 await page.setViewportSize({ width: 320, height: 700 });

@@ -95,7 +95,7 @@
   </div>
 
   <details class="hisaab">
-    <summary>See the hisaab: one way to estimate it</summary>
+    <summary>How you could estimate it</summary>
     <div class="work hand">
       <p>{question.napkin.lead}</p>
       <table>
@@ -209,9 +209,9 @@
     color: var(--ink-soft);
   }
   .hisaab {
-    border-top: 1px dashed var(--ink-soft);
-    border-bottom: 1px dashed var(--ink-soft);
-    padding: 0.5rem 0;
+    background: var(--page-2);
+    border-radius: 14px;
+    padding: 0.55rem 0.95rem;
   }
   summary {
     cursor: pointer;

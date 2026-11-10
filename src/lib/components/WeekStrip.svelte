@@ -44,7 +44,7 @@
     gap: 0.1rem;
     padding: 0.45rem 0.1rem;
     border-radius: 8px;
-    border: 1.5px dashed var(--rule);
+    border: 1.5px solid var(--rule);
     text-decoration: none;
     min-width: 0;
   }

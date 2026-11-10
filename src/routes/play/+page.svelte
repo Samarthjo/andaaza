@@ -4,13 +4,14 @@
   import GuessInput from '$lib/components/GuessInput.svelte';
   import Results from '$lib/components/Results.svelte';
   import Reveal from '$lib/components/Reveal.svelte';
-  import { formatLongDate, isDateKey, istDateKey, daysBetween } from '$lib/core/date';
+  import { daysBetween, formatLongDate, isDateKey, istDateKey } from '$lib/core/date';
   import { formatFactor } from '$lib/core/number';
-  import { bucketOf, dayScore, emojiFor, factorOf } from '$lib/core/score';
+  import { emojiFor, factorOf } from '$lib/core/score';
   import { puzzleFor, type Puzzle } from '$lib/data/puzzle';
-  import { online, puzzleStats, recordAnswer, recordGame, type PuzzleStats } from '$lib/state/online';
+  import { finishGame, lockGuess, openGame } from '$lib/state/game';
+  import { online, puzzleStats, type PuzzleStats } from '$lib/state/online';
   import { settings } from '$lib/state/settings.svelte';
-  import { loadGame, saveGame, sessionId, type SavedGame } from '$lib/state/storage';
+  import type { SavedGame } from '$lib/state/storage';
 
   type View = { phase: 'guess' | 'reveal'; idx: number } | { phase: 'results' };
 
@@ -29,11 +30,12 @@
 
   onMount(() => {
     today = istDateKey();
-    const requested = new URLSearchParams(location.search).get('d');
+    const params = new URLSearchParams(location.search);
+    const requested = params.get('d');
     let key = today;
     if (requested && isDateKey(requested)) {
-      if (daysBetween(requested, today) < 0) notice = 'That puzzle hasn’t been released yet, so here is today’s.';
-      else if (!puzzleFor(requested)) notice = 'Andaaza started later than that date, so here is today’s puzzle.';
+      if (daysBetween(requested, today) < 0) notice = 'That puzzle isn’t out yet. Here’s today’s.';
+      else if (!puzzleFor(requested)) notice = 'Andaaza started after that date. Here’s today’s.';
       else key = requested;
     }
     const p = puzzleFor(key);
@@ -42,22 +44,11 @@
       return;
     }
     puzzle = p;
-    const saved = loadGame(key);
-    const ids = p.questions.map((q) => q.id);
-    if (saved && saved.questionIds.join() === ids.join()) {
-      game = saved;
-    } else {
-      game = {
-        dateKey: key,
-        mode: key === today ? 'daily' : 'archive',
-        questionIds: ids,
-        answers: p.questions.map((q) => q.answer),
-        guesses: [],
-        completed: false,
-        startedAt: Date.now()
-      };
-    }
-    view = game.completed ? { phase: 'results' } : { phase: 'guess', idx: game.guesses.length };
+    game = openGame(p, today);
+    const r = Number(params.get('r'));
+    if (game.completed) view = { phase: 'results' };
+    else if (params.has('r') && Number.isInteger(r) && r >= 0 && r < game.guesses.length) view = { phase: 'reveal', idx: r };
+    else view = { phase: 'guess', idx: game.guesses.length };
     ready = true;
     refreshStats();
   });
@@ -68,66 +59,27 @@
   }
 
   function lock(guess: number) {
-    if (!puzzle || !game || view.phase !== 'guess') return;
-    const idx = view.idx;
-    if (game.guesses.length !== idx) return;
-    const q = puzzle.questions[idx];
-    game.guesses = [...game.guesses, guess];
-    saveGame($state.snapshot(game) as SavedGame);
+    if (!puzzle || !game || view.phase !== 'guess' || game.guesses.length !== view.idx) return;
+    const next = lockGuess(puzzle, game, guess);
+    if (!next) return;
+    game = next;
     draft = '';
-    view = { phase: 'reveal', idx };
+    view = { phase: 'reveal', idx: next.guesses.length - 1 };
     scrollTop();
-    if (online) {
-      recordAnswer({
-        session: sessionId(),
-        dateKey: puzzle.dateKey,
-        mode: game.mode,
-        idx,
-        questionId: q.id,
-        guess,
-        factor: factorOf(guess, q.answer),
-        bucket: bucketOf(guess, q.answer)
-      }).then(refreshStats);
-    }
+    if (online) setTimeout(refreshStats, 600);
   }
 
   function next() {
     if (!puzzle || !game || view.phase !== 'reveal') return;
     const n = view.idx + 1;
-    if (n < game.guesses.length) {
-      view = { phase: 'reveal', idx: n };
-    } else if (n < puzzle.questions.length) {
-      view = { phase: 'guess', idx: n };
-    } else {
-      finish();
+    if (n < game.guesses.length) view = { phase: 'reveal', idx: n };
+    else if (n < puzzle.questions.length) view = { phase: 'guess', idx: n };
+    else {
+      game = finishGame(puzzle, game, settings.value.nickname);
+      view = { phase: 'results' };
+      if (online) setTimeout(refreshStats, 600);
     }
     scrollTop();
-  }
-
-  function finish() {
-    if (!puzzle || !game) return;
-    if (!game.completed) {
-      game.completed = true;
-      game.completedAt = Date.now();
-      saveGame($state.snapshot(game) as SavedGame);
-      if (online && !game.reported) {
-        const score = dayScore(game.guesses.map((g, i) => factorOf(g, game!.answers[i])));
-        recordGame({
-          session: sessionId(),
-          dateKey: puzzle.dateKey,
-          mode: game.mode,
-          score,
-          nickname: settings.value.nickname
-        }).then((r) => {
-          if (r !== null && game) {
-            game.reported = true;
-            saveGame($state.snapshot(game) as SavedGame);
-          }
-          refreshStats();
-        });
-      }
-    }
-    view = { phase: 'results' };
   }
 
   function goTo(i: number) {
@@ -144,8 +96,9 @@
 
   function nextLabel(idx: number): string {
     if (!game || !puzzle) return 'Next';
-    if (game.completed) return idx + 1 < puzzle.questions.length ? `Next: question ${idx + 2}` : 'Back to my total';
-    return idx + 1 < puzzle.questions.length ? `On to question ${idx + 2}` : 'See my total';
+    const last = idx + 1 >= puzzle.questions.length;
+    if (game.completed) return last ? 'Back to my total' : `Next: question ${idx + 2}`;
+    return last ? 'See my total' : `On to question ${idx + 2}`;
   }
 </script>
 
@@ -156,11 +109,10 @@
 
 <div class="wrap">
   {#if !ready}
-    <p class="loading">Opening the ledger…</p>
+    <p class="loading">Loading…</p>
   {:else if !puzzle || !game}
     <section class="empty">
-      <h1>The first puzzle hasn’t opened yet</h1>
-      <p>Come back on launch day.</p>
+      <h1>The first puzzle isn’t out yet</h1>
     </section>
   {:else}
     {#if notice}<p class="notice" role="status">{notice}</p>{/if}
@@ -203,7 +155,7 @@
       {/if}
     </ol>
 
-    <article id="sheet" class="ledger sheet">
+    <article id="sheet" class="sheet surface">
       {#if view.phase === 'guess'}
         {@const q = puzzle.questions[view.idx]}
         {#key q.id}
@@ -244,18 +196,21 @@
 
 <style>
   .wrap {
-    padding: 0 0 1rem;
+    max-width: 44rem;
+    margin: 0 auto;
+    padding: 0.5rem var(--gutter) 1rem;
   }
   .loading,
-  .empty,
-  .notice {
-    padding: 1rem var(--gutter);
+  .empty {
+    padding: 1rem 0;
   }
   .notice {
-    background: var(--page-2);
-    border-left: 4px solid var(--accent);
-    margin: 0 var(--gutter) 0.75rem;
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 0.6rem 0.9rem;
+    margin-bottom: 0.75rem;
     font-size: var(--t-sm);
+    box-shadow: var(--shadow);
   }
   .meta {
     display: flex;
@@ -263,7 +218,7 @@
     justify-content: space-between;
     flex-wrap: wrap;
     gap: 0.25rem 1rem;
-    padding: 0.25rem var(--gutter) 0.5rem;
+    padding-bottom: 0.5rem;
   }
   .no {
     font-size: var(--t-2xl);
@@ -288,7 +243,7 @@
   .steps {
     list-style: none;
     margin: 0;
-    padding: 0 var(--gutter) 0.6rem;
+    padding: 0 0 0.9rem;
     display: flex;
     gap: 0.4rem;
     overflow-x: auto;
@@ -298,9 +253,9 @@
     gap: 0.35rem;
     align-items: center;
     min-height: 2.25rem;
-    padding: 0.2rem 0.75rem;
+    padding: 0.2rem 0.8rem;
     border-radius: 999px;
-    border: 1.5px dashed var(--ink-soft);
+    border: 1.5px solid var(--rule);
     background: transparent;
     font-size: var(--t-sm);
     font-weight: 600;
@@ -314,22 +269,24 @@
   .step.answered,
   .step.total {
     border-style: solid;
-    border-color: var(--rule);
-    background: var(--page-2);
+    border-color: transparent;
+    background: var(--surface);
+    box-shadow: var(--shadow);
   }
   .step.active {
-    border-color: var(--binding);
-    border-style: solid;
-    box-shadow: inset 0 0 0 1px var(--binding);
+    border: 1.5px solid var(--binding);
   }
   .sf {
     font-weight: 500;
   }
   .sheet {
-    padding-top: 1.25rem;
-    padding-bottom: 2rem;
-    border-top: 6px solid var(--binding);
-    scroll-margin-top: 0.5rem;
+    padding: 1.5rem 1.25rem 1.75rem;
+    scroll-margin-top: 4.5rem;
+  }
+  @media (min-width: 40rem) {
+    .sheet {
+      padding: 2rem 2rem 2.25rem;
+    }
   }
   .sheet > :global(*) {
     min-width: 0;
@@ -353,9 +310,10 @@
   }
   .prompt {
     font-family: var(--font-ui);
-    font-weight: 600;
+    font-weight: 700;
     font-size: clamp(1.45rem, 5.6vw, 2rem);
-    line-height: 1.25;
+    line-height: 1.22;
+    letter-spacing: -0.01em;
     max-width: 34rem;
   }
 </style>

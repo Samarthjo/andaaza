@@ -23,13 +23,12 @@
     return { pts, top, line: pts.map(([x, yy]) => `${x.toFixed(1)},${yy.toFixed(1)}`).join(' ') };
   });
 
-  function leanSentence(st: PlayerStats): string {
+  function lean(st: PlayerStats): string {
     if (st.highShare === null || st.lean === null) return '';
     const pct = Math.round(st.highShare * 100);
-    if (st.lean > 1.15) return `You lean high: ${pct}% of your guesses were too big, by ${formatFactor(st.lean)} on average.`;
-    if (st.lean < 1 / 1.15)
-      return `You lean low: ${100 - pct}% of your guesses were too small, by ${formatFactor(1 / st.lean)} on average.`;
-    return `Nicely balanced: ${pct}% of your guesses were too high and ${100 - pct}% too low.`;
+    if (st.lean > 1.15) return `You guess high: ${pct}% of your guesses were too big.`;
+    if (st.lean < 1 / 1.15) return `You guess low: ${100 - pct}% of your guesses were too small.`;
+    return `Balanced: ${pct}% too high, ${100 - pct}% too low.`;
   }
 </script>
 
@@ -41,27 +40,26 @@
   <h1>Your stats</h1>
 
   {#if s && s.played === 0}
-    <p class="empty">Your stats start with your first finished puzzle.</p>
+    <p class="empty">Nothing here yet. Your first finished puzzle starts it.</p>
     <a class="btn" href="{base}/play">Play today’s puzzle</a>
   {:else if s}
     <dl class="tiles num">
-      <div><dt>Puzzles finished</dt><dd>{s.played}</dd></div>
-      <div><dt>Current streak</dt><dd>{s.currentStreak} {s.currentStreak === 1 ? 'day' : 'days'}</dd></div>
-      <div><dt>Longest streak</dt><dd>{s.maxStreak} {s.maxStreak === 1 ? 'day' : 'days'}</dd></div>
-      <div><dt>Best day</dt><dd>{s.bestScore !== null ? formatFactor(s.bestScore) : '–'}</dd></div>
       <div class="wide">
         <dt>Typical day</dt>
         <dd><span class="double-rule">{s.averageScore !== null ? formatFactor(s.averageScore) : '–'}</span></dd>
       </div>
+      <div><dt>Finished</dt><dd>{s.played}</dd></div>
+      <div><dt>Best day</dt><dd>{s.bestScore !== null ? formatFactor(s.bestScore) : '–'}</dd></div>
+      <div><dt>Streak</dt><dd>{s.currentStreak}</dd></div>
+      <div><dt>Longest streak</dt><dd>{s.maxStreak}</dd></div>
     </dl>
 
-    <p class="lean">{leanSentence(s)}</p>
+    <p class="lean">{lean(s)}</p>
 
     {#if trend}
-      <figure class="trend">
-        <figcaption>Recent days (lower is better)</figcaption>
+      <figure class="trend surface">
+        <figcaption>Recent days, lower is better</figcaption>
         <svg viewBox="0 0 {W} {H}" role="img" aria-label="Line chart of your recent day scores">
-          <line x1="8" x2={W - 8} y1="8" y2="8" class="axis" />
           <text x={W - 8} y="20" text-anchor="end" class="ax">1×</text>
           <text x={W - 8} y={H - 2} text-anchor="end" class="ax">{formatFactor(trend.top)}</text>
           <polyline points={trend.line} class="ln" />
@@ -73,12 +71,14 @@
       </figure>
     {/if}
 
-    <p class="note">Stats live in this browser. Clearing site data or switching phones starts them over.</p>
+    <p class="note">Saved in this browser only.</p>
   {/if}
 </section>
 
 <style>
   .page {
+    max-width: 44rem;
+    margin: 0 auto;
     padding: 0.75rem var(--gutter);
     display: grid;
     gap: 1.25rem;
@@ -99,17 +99,22 @@
     margin: 0;
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    border-top: 6px solid var(--binding);
+    gap: 0.6rem;
   }
   .tiles div {
-    padding: 0.8rem 0;
-    border-bottom: 1px solid var(--rule);
-  }
-  .tiles div:nth-child(odd):not(.wide) {
-    padding-right: 1rem;
+    padding: 0.85rem 1rem;
+    border-radius: 18px;
+    background: var(--surface);
+    box-shadow: var(--shadow);
   }
   .tiles .wide {
     grid-column: span 2;
+    background: var(--binding);
+    color: var(--binding-ink);
+  }
+  .tiles .wide dt {
+    color: inherit;
+    opacity: 0.8;
   }
   dt {
     font-size: var(--t-sm);
@@ -127,11 +132,9 @@
   .wide .double-rule {
     display: inline-block;
   }
-  .lean {
-    max-width: 34rem;
-  }
   .trend {
     margin: 0;
+    padding: 1rem;
     display: grid;
     gap: 0.4rem;
   }
@@ -141,12 +144,7 @@
   }
   svg {
     width: 100%;
-    max-width: 30rem;
     height: auto;
-  }
-  .axis {
-    stroke: var(--rule);
-    stroke-width: 1;
   }
   .ax {
     fill: var(--ink-soft);
@@ -158,7 +156,7 @@
     stroke-width: 2;
   }
   .dot {
-    fill: var(--page);
+    fill: var(--surface);
     stroke: var(--binding);
     stroke-width: 2;
   }

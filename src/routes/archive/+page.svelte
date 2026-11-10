@@ -30,9 +30,7 @@
     });
   });
 
-  const shown = $derived(
-    rows.filter((r) => (filter === 'all' ? true : filter === 'played' ? r.score !== null : r.score === null))
-  );
+  const shown = $derived(rows.filter((r) => (filter === 'all' ? true : filter === 'played' ? r.score !== null : r.score === null)));
   const playedCount = $derived(rows.filter((r) => r.score !== null).length);
 </script>
 
@@ -42,11 +40,10 @@
 </svelte:head>
 
 <section class="page">
-  <h1>Archive</h1>
-  <p class="sub">
-    {#if rows.length}You’ve finished {playedCount} of {rows.length} puzzles.{/if}
-    Old puzzles don’t count toward your streak.
-  </p>
+  <div class="head">
+    <h1>Archive</h1>
+    {#if rows.length}<p class="count num">{playedCount} of {rows.length} done</p>{/if}
+  </div>
 
   <div class="filters" role="group" aria-label="Show">
     <button class="chip" aria-pressed={filter === 'all'} onclick={() => (filter = 'all')}>All</button>
@@ -55,67 +52,68 @@
   </div>
 
   {#if rows.length && !shown.length}
-    <p class="empty">
-      {filter === 'played' ? 'Nothing finished yet. Start with today’s puzzle.' : 'You’ve played them all. Come back at midnight.'}
-    </p>
+    <p class="empty">{filter === 'played' ? 'Nothing finished yet.' : 'All caught up. New one at midnight.'}</p>
+  {:else}
+    <ul class="card-list list">
+      {#each shown as r (r.key)}
+        <li>
+          <a href="{base}/play?d={r.key}">
+            <span class="no num">No. {r.no}</span>
+            <span class="when">
+              {formatLongDate(r.key)}
+              {#if r.key === today}<em>Today</em>{/if}
+              {#if r.rerun}<em>Rerun</em>{/if}
+              <span class="em" aria-hidden="true">{r.emojis}</span>
+            </span>
+            <span class="state num" class:done={r.score !== null}>
+              {r.score !== null ? formatFactor(r.score) : r.started ? 'Continue' : 'Play'}
+            </span>
+          </a>
+        </li>
+      {/each}
+    </ul>
   {/if}
-
-  <ul class="list">
-    {#each shown as r (r.key)}
-      <li>
-        <a href="{base}/play?d={r.key}">
-          <span class="no num">No. {r.no}</span>
-          <span class="when">
-            {formatLongDate(r.key)}
-            {#if r.key === today}<em>Today</em>{/if}
-            {#if r.rerun}<em>Rerun</em>{/if}
-            <span class="em" aria-hidden="true">{r.emojis}</span>
-          </span>
-          <span class="state num" class:done={r.score !== null}>
-            {r.score !== null ? formatFactor(r.score) : r.started ? 'In progress' : 'Play'}
-          </span>
-        </a>
-      </li>
-    {/each}
-  </ul>
+  <p class="foot">Only the daily puzzle counts toward your streak.</p>
 </section>
 
 <style>
   .page {
+    max-width: 44rem;
+    margin: 0 auto;
     padding: 0.75rem var(--gutter);
     display: grid;
+    gap: 1rem;
+  }
+  .head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
     gap: 1rem;
   }
   h1 {
     font-size: var(--t-2xl);
   }
-  .sub,
-  .empty {
+  .count,
+  .empty,
+  .foot {
     color: var(--ink-soft);
+    font-size: var(--t-sm);
   }
   .filters {
     display: flex;
     gap: 0.4rem;
     flex-wrap: wrap;
   }
-  .list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    border-top: 6px solid var(--binding);
-  }
   .list a {
     display: grid;
-    grid-template-columns: 4.5rem 1fr auto;
+    grid-template-columns: 4.25rem 1fr auto;
     gap: 0.75rem;
     align-items: center;
-    padding: 0.8rem 0;
-    border-bottom: 1px solid var(--rule);
+    padding: 0.85rem 1rem;
     text-decoration: none;
   }
-  .list a:hover .when {
-    text-decoration: underline;
-    text-decoration-color: var(--margin);
+  .list a:hover {
+    background: color-mix(in srgb, var(--page-2) 45%, transparent);
   }
   .no {
     font-family: var(--font-display);
@@ -141,7 +139,7 @@
     letter-spacing: 0.15em;
   }
   .state {
-    font-weight: 600;
+    font-weight: 700;
     font-size: var(--t-sm);
     color: var(--binding);
   }

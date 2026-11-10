@@ -31,12 +31,9 @@
 
 <section class="page">
   <h1>Suggest a question</h1>
-  <p class="sub">
-    The best questions sound impossible but can be worked out: how many, how long, how much, somewhere in India. A
-    source for the answer helps us use it.
-  </p>
+  <p class="sub">Something about India that sounds impossible to know but can be worked out.</p>
 
-  <form class="ledger" onsubmit={send}>
+  <form class="surface" onsubmit={send}>
     <label for="q">Your question</label>
     <textarea id="q" rows="3" bind:value={question} maxlength="400" placeholder="How many auto-rickshaws are there in Delhi?"
     ></textarea>
@@ -65,6 +62,8 @@
 
 <style>
   .page {
+    max-width: 40rem;
+    margin: 0 auto;
     padding: 0.75rem var(--gutter);
     display: grid;
     gap: 1rem;
@@ -79,9 +78,7 @@
   form {
     display: grid;
     gap: 0.45rem;
-    padding-top: 1.25rem;
-    padding-bottom: 1.5rem;
-    border-top: 6px solid var(--binding);
+    padding: 0.75rem 1.25rem 1.5rem;
   }
   label {
     font-weight: 600;

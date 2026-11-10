@@ -6,74 +6,69 @@
 
 <svelte:head>
   <title>About Andaaza</title>
-  <meta name="description" content="What Andaaza is, how scoring works and where the answers come from." />
+  <meta name="description" content="How Andaaza works: scoring, sources and your data." />
 </svelte:head>
 
 <article class="page">
-  <h1>About Andaaza</h1>
+  <h1>About</h1>
 
-  <p>
-    <span lang="hi">अंदाज़ा</span> means a rough estimate: the number you arrive at when you can’t look it up but can
-    reason your way close. Every day Andaaza asks three questions about India. You guess, see the real answer, and find
-    out how many times off you were.
-  </p>
+  <section class="surface">
+    <h2>Scoring</h2>
+    <p>
+      Each guess scores how many times off it was: the bigger number divided by the smaller. Half or double are both
+      2×. Your day’s total is the geometric mean of the three, and one guess counts as at most 1,000×.
+    </p>
+  </section>
 
-  <h2>Why estimate?</h2>
-  <p>
-    The physicist Enrico Fermi was famous for questions like “how many piano tuners are there in Chicago?”, which
-    sound impossible until you break them into smaller guesses you <em>can</em> make. Indian kitchens, shops and offices
-    have always done the same thing as everyday hisaab. Estimating like this is how good planners, journalists and
-    founders sanity-check numbers.
-  </p>
+  <section class="surface">
+    <h2>Sources</h2>
+    <p>
+      Answers come from census data, ministries, the Election Commission, ISRO and official sports records. Each one
+      names its source and year. Spot an error? <a href="{base}/submit">Tell us</a>.
+    </p>
+  </section>
 
-  <h2>How scoring works</h2>
-  <p>
-    For each question we divide the bigger number by the smaller one, your guess or the answer. Guessing half or double
-    both count as 2× off. Your day’s total is the geometric mean of the three questions, so one question being 10×
-    off counts the same whether you guessed too high or too low. Any single guess counts as at most 1,000× off.
-  </p>
+  <section class="surface">
+    <h2>Your data</h2>
+    <p>
+      Games and stats stay in this browser.
+      {#if online}
+        To show how others guessed, each guess is also sent with a random ID, not your name or email.
+      {:else}
+        Nothing is sent anywhere.
+      {/if}
+    </p>
+  </section>
 
-  <h2>Where the answers come from</h2>
-  <p>
-    Census data, government ministries, the Election Commission, ISRO, official sports records and similar bodies.
-    Each answer names its source and the year it refers to. Some figures, such as crowd counts, are estimates themselves,
-    and the answer note says so. If you spot an error, <a href="{base}/submit">tell us</a>.
-  </p>
-
-  <h2>Your data</h2>
-  <p>
-    Your games, stats and settings are stored only in this browser.
-    {#if online}
-      To show how other players guessed, each locked guess is also sent with a random ID that isn’t linked to your
-      name, email or device. A name is only sent if you add one on the leaderboard page.
-    {:else}
-      Nothing is sent anywhere.
-    {/if}
-  </p>
-
-  <p class="small">Puzzle No. 1 was published on {formatLongDate(LAUNCH_DATE)}.</p>
+  <p class="small">Puzzle No. 1: {formatLongDate(LAUNCH_DATE)}. Icons by Tabler Icons (MIT).</p>
 </article>
 
 <style>
   .page {
+    max-width: 40rem;
+    margin: 0 auto;
     padding: 0.75rem var(--gutter);
     display: grid;
-    gap: 0.9rem;
-    max-width: 38rem;
+    gap: 1rem;
   }
   h1 {
     font-size: var(--t-2xl);
   }
+  section {
+    padding: 1.1rem 1.25rem 1.25rem;
+    display: grid;
+    gap: 0.4rem;
+  }
   h2 {
-    font-size: var(--t-xl);
-    margin-top: 0.8rem;
+    font-family: var(--font-ui);
+    font-weight: 700;
+    font-size: var(--t-lg);
   }
   p {
     line-height: 1.6;
   }
   .small {
-    font-size: var(--t-sm);
+    font-size: var(--t-xs);
     color: var(--ink-soft);
-    margin-top: 1rem;
   }
 </style>

@@ -197,6 +197,6 @@
     padding: 0.2rem 0.6rem;
     border: none;
     border-radius: var(--radius);
-    background: repeating-linear-gradient(to bottom, var(--page-2) 0 calc(1.8rem - 1px), var(--rule) calc(1.8rem - 1px) 1.8rem);
+    background: var(--surface);
   }
 </style>

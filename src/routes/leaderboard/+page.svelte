@@ -62,7 +62,7 @@
     {:else if rows.length === 0}
       <p class="sub">No named scores yet. Finish today’s puzzle with a name set to be first.</p>
     {:else}
-      <ol class="board">
+      <ol class="board card-list">
         {#each rows as r, i (i)}
           <li>
             <span class="rank num">{i + 1}</span>
@@ -78,6 +78,8 @@
 
 <style>
   .page {
+    max-width: 40rem;
+    margin: 0 auto;
     padding: 0.75rem var(--gutter);
     display: grid;
     gap: 1rem;
@@ -121,19 +123,15 @@
     text-decoration: underline;
     cursor: pointer;
   }
-  .board {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    border-top: 6px solid var(--binding);
+  .board li {
+    padding-inline: 1rem;
   }
   .board li {
     display: grid;
     grid-template-columns: 2rem 1fr auto auto;
     gap: 0.75rem;
     align-items: baseline;
-    padding: 0.6rem 0;
-    border-bottom: 1px solid var(--rule);
+    padding-block: 0.65rem;
   }
   .rank {
     color: var(--ink-soft);

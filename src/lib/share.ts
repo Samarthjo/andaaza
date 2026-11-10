@@ -56,27 +56,19 @@ export async function shareImage(puzzle: Puzzle, guesses: number[]): Promise<Blo
   const page = cssVar('--page', '#fbf1c7');
   const ink = cssVar('--ink', '#1e2747');
   const soft = cssVar('--ink-soft', '#4d5577');
-  const rule = cssVar('--rule', '#ead48d');
-  const margin = cssVar('--margin', '#d9544f');
   const binding = cssVar('--binding', '#9e1b1b');
   const display = '"Rozha One", Georgia, serif';
   const ui = '"Mukta", system-ui, sans-serif';
 
   ctx.fillStyle = page;
   ctx.fillRect(0, 0, W, H);
-  // ledger rules
-  ctx.fillStyle = rule;
-  for (let y = 180; y < H; y += 64) ctx.fillRect(0, y, W, 2);
-  // binding strip and double margin line
+  // binding-coloured header strip
   ctx.fillStyle = binding;
   ctx.fillRect(0, 0, W, 120);
-  ctx.fillStyle = margin;
-  ctx.fillRect(110, 120, 4, H);
-  ctx.fillRect(122, 120, 4, H);
 
   const r = rows(puzzle, guesses);
   const score = dayScore(r.map((x) => x.f));
-  const x0 = 170;
+  const x0 = 90;
 
   ctx.fillStyle = cssVar('--binding-ink', '#fff6da');
   ctx.font = `64px ${display}`;
