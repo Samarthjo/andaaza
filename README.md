@@ -85,22 +85,24 @@ questions (marked "Rerun") until new ones are added to `SCHEDULE`.
 - Set `LAUNCH_DATE` to the real launch day.
 - Pick a domain and set `VITE_SITE_URL` so share text links to it.
 
-## Optional online mode (crowd stats, leaderboard, question inbox)
+## Online mode (crowd charts, leaderboard, question inbox)
 
-Without configuration the game is fully offline: everything stays in the player's
-browser. To show "how everyone guessed", the leaderboard and a question inbox:
+Online mode is on. The "How everyone guessed" and "How everyone did" bar charts,
+the "closer than X% of players" line, the leaderboard and the question inbox use a
+Supabase project (`andaaza`, ref `pqvppabcdbenzrlbxzkw`, Mumbai region).
 
-1. Create a Supabase project and run `supabase/migrations/20261109000000_andaaza.sql`
-   (SQL editor or `supabase db push`). Tables are RLS-locked; the browser can only
-   call the validated `andaaza_*` functions.
-2. Build with:
+- `.env.production` holds the public project URL and **publishable** key. Both are
+  meant to be public; Vercel and `npm run build:pages` pick them up automatically.
+- Tables are locked behind RLS with no policies. Browsers can only call the five
+  validated `andaaza_*` functions in `supabase/migrations/`, which store anonymous
+  guesses (random session id, no names or emails unless a player sets a nickname).
+- Histograms use 21 log-scale bins: guesses from ÷10 to ×10 of the answer, day
+  scores from 1× to 1,000×.
+- `npm run test:e2e` intercepts every Supabase call with canned data, so tests never
+  write to the real database.
 
-   ```bash
-   VITE_SUPABASE_URL=https://<project>.supabase.co VITE_SUPABASE_ANON_KEY=<anon key> npm run build
-   ```
-
-The anon key is public by design. Consider adding Supabase rate limiting or
-Cloudflare Turnstile before heavy traffic, since anyone can call the insert functions.
+To run without a backend, delete `.env.production`; the game falls back to fully
+offline play (charts show only your own marker).
 
 ## Credits
 

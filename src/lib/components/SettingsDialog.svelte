@@ -3,15 +3,12 @@
   import { PALETTES, settings, type Theme } from '$lib/state/settings.svelte';
   import { clearAll } from '$lib/state/storage';
   import Icon from './Icon.svelte';
+  import Sheet from './Sheet.svelte';
 
   let { open = $bindable(false) }: { open: boolean } = $props();
-  let dialog: HTMLDialogElement | undefined = $state();
   let confirmReset = $state(false);
-
   $effect(() => {
-    if (!dialog) return;
-    if (open && !dialog.open) dialog.showModal();
-    if (!open && dialog.open) dialog.close();
+    if (!open) confirmReset = false;
   });
 
   const themes: { id: Theme; label: string }[] = [
@@ -33,18 +30,7 @@
   }
 </script>
 
-<dialog
-  bind:this={dialog}
-  class="sheet-dialog"
-  onclose={() => {
-    open = false;
-    confirmReset = false;
-  }}
-  onclick={(e) => {
-    if (e.target === dialog) open = false;
-  }}
-  aria-labelledby="settings-title"
->
+<Sheet bind:open side="right" labelledby="settings-title">
   <div class="sheet">
     <header>
       <h2 id="settings-title">Settings</h2>
@@ -94,12 +80,13 @@
       {confirmReset ? 'Tap again to erase all games and stats' : 'Erase my games and stats'}
     </button>
   </div>
-</dialog>
+</Sheet>
 
 <style>
   .sheet {
     padding: 1rem 1.25rem 1.5rem;
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     gap: 1.1rem;
   }
   header {

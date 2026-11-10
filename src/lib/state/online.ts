@@ -3,7 +3,7 @@
  * Enabled only when VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set at build
  * time. Every call fails soft: the game never depends on the network.
  */
-import { BUCKET_COUNT } from '$lib/core/score';
+import { BINS } from '$lib/core/score';
 
 const URL_BASE = (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.replace(/\/$/, '') ?? '';
 const ANON_KEY = (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined) ?? '';
@@ -19,7 +19,8 @@ async function rpc<T>(fn: string, args: Record<string, unknown>, timeoutMs = 600
       method: 'POST',
       headers: {
         apikey: ANON_KEY,
-        Authorization: `Bearer ${ANON_KEY}`,
+        // Legacy anon keys are JWTs and also go in Authorization; new sb_publishable_ keys must not.
+        ...(ANON_KEY.startsWith('eyJ') ? { Authorization: `Bearer ${ANON_KEY}` } : {}),
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(args),
@@ -69,16 +70,18 @@ export function recordGame(g: { session: string; dateKey: string; mode: 'daily' 
 
 export interface PuzzleStats {
   players: number;
-  /** One array of BUCKET_COUNT counts per question index. */
+  /** One array of BINS (21) guess counts per question index. */
   buckets: number[][];
-  /** Day-score histogram, aligned with SCORE_EDGES. */
+  /** Day-score histogram, BINS (21) bins from 1× to 1000×. */
   scores: number[];
 }
 
 export async function puzzleStats(dateKey: string): Promise<PuzzleStats | null> {
   const r = await rpc<PuzzleStats>('andaaza_puzzle_stats', { p_date: dateKey });
   if (!r || !Array.isArray(r.buckets)) return null;
-  r.buckets = r.buckets.map((b) => (Array.isArray(b) && b.length === BUCKET_COUNT ? b : Array(BUCKET_COUNT).fill(0)));
+  const ok = (b: unknown): b is number[] => Array.isArray(b) && b.length === BINS;
+  r.buckets = r.buckets.map((b) => (ok(b) ? b : Array(BINS).fill(0)));
+  if (!ok(r.scores)) r.scores = Array(BINS).fill(0);
   return r;
 }
 

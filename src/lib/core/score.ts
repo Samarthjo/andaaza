@@ -51,43 +51,67 @@ export function sideLabel(side: Side): { hi: string; en: string; arrow: string }
   return { hi: 'Bilkul', en: 'Exact', arrow: '=' };
 }
 
-/**
- * Crowd buckets on a log scale around the answer. Index 4 is the bullseye band.
- * Ratios are guess/answer.
- */
-export const BUCKET_EDGES = [1 / 10, 1 / 4, 1 / 2, 1 / 1.25, 1.25, 2, 4, 10];
-export const BUCKET_LABELS = ['<⅒', '⅒–¼', '¼–½', '½–0.8', '≈1×', '1.25–2×', '2–4×', '4–10×', '>10×'];
-export const BUCKET_COUNT = BUCKET_EDGES.length + 1;
-export const BULLSEYE_BUCKET = 4;
+/* ---------- Crowd histograms (21 log-scale bins, see supabase/migrations) ---------- */
 
-export function bucketOf(guess: number, answer: number): number {
-  const ratio = guess / answer;
-  let i = 0;
-  while (i < BUCKET_EDGES.length && ratio >= BUCKET_EDGES[i]) i++;
-  return i;
+export const BINS = 21;
+/** Guess bins cover guess/answer from ÷10 (bin 0) to ×10 (bin 20); bin 10 holds the answer. */
+export const ANSWER_BIN = 10;
+
+const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
+
+/** Position of a guess on the ÷10…×10 axis, 0..1 (0.5 is the answer). */
+export function guessPosition(guess: number, answer: number): number {
+  if (!(guess > 0) || !(answer > 0)) return 0;
+  return (clamp(Math.log10(guess / answer), -1, 1) + 1) / 2;
 }
 
-/** Distance of a bucket from the bullseye band, used for "closer than X%". */
-export function bucketDistance(bucket: number): number {
-  return Math.abs(bucket - BULLSEYE_BUCKET);
+export function guessBin(guess: number, answer: number): number {
+  return clamp(Math.floor(guessPosition(guess, answer) * BINS), 0, BINS - 1);
+}
+
+/** Day scores: 1× (bin 0) to 1000× (bin 20). */
+export function scorePosition(score: number): number {
+  return clamp(Math.log10(Math.max(1, score)) / 3, 0, 1);
+}
+
+export function scoreBin(score: number): number {
+  return clamp(Math.floor(scorePosition(score) * BINS), 0, BINS - 1);
+}
+
+function withoutSelf(counts: number[], myBin: number, includesSelf: boolean): number[] {
+  const c = counts.slice();
+  if (includesSelf && c[myBin] > 0) c[myBin] -= 1;
+  return c;
 }
 
 /**
- * Share of other players strictly further from the answer than this player,
- * using bucket distance. Ties count half. Returns null with no crowd data.
+ * Share of other players whose guess was further from the answer (by bin distance).
+ * Ties count half. Null when nobody else has played.
  */
-export function closerThanPercent(counts: number[], myBucket: number): number | null {
-  const total = counts.reduce((a, b) => a + b, 0);
+export function closerThanPercent(counts: number[], myBin: number, includesSelf = true): number | null {
+  const c = withoutSelf(counts, myBin, includesSelf);
+  const total = c.reduce((a, b) => a + b, 0);
   if (total < 1) return null;
-  const mine = bucketDistance(myBucket);
+  const mine = Math.abs(myBin - ANSWER_BIN);
   let further = 0;
   let same = 0;
-  counts.forEach((c, i) => {
-    const d = bucketDistance(i);
-    if (d > mine) further += c;
-    else if (d === mine) same += c;
+  c.forEach((n, i) => {
+    const d = Math.abs(i - ANSWER_BIN);
+    if (d > mine) further += n;
+    else if (d === mine) same += n;
   });
   return Math.round(((further + same / 2) / total) * 100);
+}
+
+/** "Top X%" for a day score among other players (lower score is better). Null without others. */
+export function topPercent(counts: number[], myBin: number, includesSelf = true): number | null {
+  const c = withoutSelf(counts, myBin, includesSelf);
+  const total = c.reduce((a, b) => a + b, 0);
+  if (total < 1) return null;
+  let better = 0;
+  for (let i = 0; i < myBin; i++) better += c[i];
+  const pct = Math.ceil(((better + c[myBin] / 2 + 1) / (total + 1)) * 100);
+  return clamp(pct, 1, 100);
 }
 
 export function emojiFor(factor: number): string {
@@ -96,12 +120,4 @@ export function emojiFor(factor: number): string {
   if (factor <= 4) return '🟡';
   if (factor <= 10) return '🟠';
   return '🔴';
-}
-
-/** Day score buckets for the results histogram (1×–1000× on a log axis). */
-export const SCORE_EDGES = [1.25, 1.5, 2, 3, 5, 10, 30, 100, 1000];
-export function scoreBucketOf(score: number): number {
-  let i = 0;
-  while (i < SCORE_EDGES.length && score > SCORE_EDGES[i]) i++;
-  return Math.min(i, SCORE_EDGES.length - 1);
 }

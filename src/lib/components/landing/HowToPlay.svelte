@@ -70,7 +70,7 @@
         <div class="mline"><span class="mtyped">{typed}<span class="caret"></span></span><span class="munit">cups</span></div>
         <div class="mrow mfoot">
           <span class="mcalc"><Icon name="calculator" size={20} /></span>
-          <span class="mlock">Lock it in</span>
+          <span class="mlock">Lock it in ↵</span>
         </div>
       </div>
     </li>
@@ -84,8 +84,8 @@
         <div class="mrow"><span>Q2 / 3</span><span class="mbrand">Andaaza</span></div>
         <p class="mq small">How tall is the Qutub Minar?</p>
         <div class="mboxes">
-          <div class="mbox"><span>You guessed</span><strong class="num">60 m</strong></div>
-          <div class="mbox ans"><span>Answer</span><strong class="num">72.5 m</strong></div>
+          <div class="mbox"><span class="lbl">You guessed</span><strong class="num">60 m</strong></div>
+          <div class="mbox ans"><span class="lbl">Answer</span><strong class="num">72.5 m</strong></div>
         </div>
         <div class="mruler"><span class="mk you"></span><span class="mk real"></span></div>
         <p class="mland"><strong class="num">1.21×</strong> Bahut badhiya</p>
@@ -98,7 +98,8 @@
         <p>Your day’s total lands on a card made for the group chat.</p>
       </div>
       <div class="mock m3" aria-hidden="true">
-        <div class="mrow"><span class="mbrand">Andaaza No. 7</span><span>Total</span></div>
+        <div class="mrow"><span class="mbrand">Andaaza</span><span>No. 7</span></div>
+        <span class="lbl">Score</span>
         <p class="mtotal num">{formatFactor(shownTotal)}</p>
         <span class="mtag">Accha andaaza</span>
         <ul class="mlist num">
@@ -106,7 +107,7 @@
             <li><span>{emoji(f)} Q{i + 1}</span><span>{arrow(f, i)} {formatFactor(f)}</span></li>
           {/each}
         </ul>
-        <div class="mrow mbtns"><span class="mshare">Share image</span><span class="mcopy">Copy text</span></div>
+        <div class="mrow mbtns"><span class="mshare">Share card</span><span class="mcopy">Copy text</span></div>
       </div>
     </li>
   </ol>
@@ -215,20 +216,21 @@
     font-size: 1.1rem;
   }
   .m1 {
-    background: var(--sindoor);
+    background: var(--card-q1);
     color: #fff7ec;
   }
   .mline {
     display: flex;
     justify-content: space-between;
-    align-items: baseline;
-    border-bottom: 3px solid currentColor;
-    padding-bottom: 0.2rem;
-    min-height: 2.6rem;
+    align-items: center;
+    padding: 0.55rem 0.9rem;
+    border-radius: 14px;
+    background: rgb(255 255 255 / 0.16);
+    min-height: 3.2rem;
   }
   .mtyped {
-    font-family: var(--font-display);
-    font-size: 1.9rem;
+    font-weight: 800;
+    font-size: 1.7rem;
     line-height: 1;
   }
   .caret {
@@ -261,15 +263,17 @@
     border: 2px solid currentColor;
   }
   .mlock {
-    padding: 0.45rem 1rem;
+    padding: 0.5rem 1rem;
     border-radius: 999px;
     background: #fff7ec;
-    color: var(--sindoor);
-    font-size: var(--t-sm);
+    color: var(--card-q1);
+    font-size: 0.72rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
   }
 
   .m2 {
-    background: var(--neel);
+    background: var(--card-q2);
     color: #eef0ff;
   }
   .mboxes {
@@ -286,8 +290,7 @@
     font-size: var(--t-sm);
   }
   .mbox strong {
-    font-family: var(--font-display);
-    font-weight: 400;
+    font-weight: 800;
     font-size: 1.35rem;
   }
   .mbox.ans {
@@ -323,21 +326,21 @@
     font-size: var(--t-sm);
   }
   .mland strong {
-    font-family: var(--font-display);
-    font-weight: 400;
+    font-weight: 800;
     font-size: 1.8rem;
-    color: var(--haldi);
+    color: var(--hl-text);
     margin-right: 0.35rem;
   }
 
   .m3 {
-    background: var(--haldi);
+    background: var(--card-done);
     color: var(--deep);
   }
   .mtotal {
-    font-family: var(--font-display);
-    font-size: 3.6rem;
-    line-height: 1;
+    font-weight: 800;
+    font-size: 3.4rem;
+    line-height: 0.95;
+    letter-spacing: -0.04em;
   }
   .mtag {
     justify-self: start;
@@ -372,6 +375,9 @@
     padding: 0.4rem 0.9rem;
     border-radius: 999px;
     border: 2px solid var(--deep);
+    font-size: 0.68rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
   }
   .mshare {
     background: var(--deep);

@@ -146,12 +146,13 @@ export function formatCompact(n: number, style: NumberStyle = 'indian'): string 
   return trimZeros(roundSig(n, 2).toString());
 }
 
-/** Format a multiplicative factor: 1.07×, 12.4×, 1,453×. */
+/** Format a multiplicative factor: 1.07×, 12.4×, 1,453×, 2.2Cr× (very wild guesses stay short). */
 export function formatFactor(f: number): string {
   if (!Number.isFinite(f)) return '∞×';
   if (f < 10) return `${f.toFixed(2)}×`;
   if (f < 100) return `${f.toFixed(1)}×`;
-  return `${indianFmt.format(Math.round(f))}×`;
+  if (f < 10_000) return `${indianFmt.format(Math.round(f))}×`;
+  return `${formatCompact(f)}×`;
 }
 
 /** Answer with unit, e.g. "₹615 crore" or "6,40,867 villages". */

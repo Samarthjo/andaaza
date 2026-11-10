@@ -12,10 +12,13 @@ import {
 } from './date';
 import { formatCompact, formatFactor, formatGrouped, formatWords, parseGuess } from './number';
 import {
-  BUCKET_COUNT,
-  BULLSEYE_BUCKET,
-  bucketOf,
+  ANSWER_BIN,
+  BINS,
   closerThanPercent,
+  guessBin,
+  guessPosition,
+  scoreBin,
+  topPercent,
   dayScore,
   emojiFor,
   factorOf,
@@ -80,6 +83,8 @@ describe('formatting', () => {
     expect(formatFactor(1.234)).toBe('1.23×');
     expect(formatFactor(72.16)).toBe('72.2×');
     expect(formatFactor(1452.57)).toBe('1,453×');
+    expect(formatFactor(22_233_333)).toBe('2.2Cr×');
+    expect(formatFactor(478_022)).toBe('4.8L×');
   });
 });
 
@@ -112,19 +117,41 @@ describe('scoring', () => {
     expect(verdictFor(11).tone).toBe('wild');
   });
   it('buckets', () => {
-    expect(bucketOf(100, 100)).toBe(BULLSEYE_BUCKET);
-    expect(bucketOf(1, 100)).toBe(0);
-    expect(bucketOf(10_000, 100)).toBe(BUCKET_COUNT - 1);
-    expect(bucketOf(150, 100)).toBe(5);
-    expect(bucketOf(30, 100)).toBe(2);
+    expect(BINS).toBe(21);
+    expect(guessBin(100, 100)).toBe(ANSWER_BIN);
+    expect(guessBin(105, 100)).toBe(ANSWER_BIN);
+    expect(guessBin(1, 100)).toBe(0);
+    expect(guessBin(10, 100)).toBe(0);
+    expect(guessBin(1000, 100)).toBe(BINS - 1);
+    expect(guessBin(10_000, 100)).toBe(BINS - 1);
+    expect(guessBin(200, 100)).toBe(13);
+    expect(guessPosition(100, 100)).toBeCloseTo(0.5, 10);
+    expect(scoreBin(1)).toBe(0);
+    expect(scoreBin(3.2)).toBe(3);
+    expect(scoreBin(391)).toBe(18);
+    expect(scoreBin(5000)).toBe(BINS - 1);
   });
   it('closer-than percentile', () => {
-    const counts = Array(BUCKET_COUNT).fill(0);
+    const counts = Array(BINS).fill(0);
     counts[0] = 50; // far low
-    counts[4] = 50; // bullseye
-    expect(closerThanPercent(counts, 4)).toBe(75);
-    expect(closerThanPercent(counts, 0)).toBe(25);
-    expect(closerThanPercent(Array(BUCKET_COUNT).fill(0), 4)).toBeNull();
+    counts[ANSWER_BIN] = 50; // on the answer
+    expect(closerThanPercent(counts, ANSWER_BIN, false)).toBe(75);
+    expect(closerThanPercent(counts, 0, false)).toBe(25);
+    // Own guess is already counted: excluding it leaves nobody else.
+    const solo = Array(BINS).fill(0);
+    solo[ANSWER_BIN] = 1;
+    expect(closerThanPercent(solo, ANSWER_BIN)).toBeNull();
+    expect(closerThanPercent(Array(BINS).fill(0), ANSWER_BIN)).toBeNull();
+  });
+  it('top percent for day scores', () => {
+    const counts = Array(BINS).fill(0);
+    counts[2] = 9; // nine others did better
+    counts[10] = 1; // me
+    expect(topPercent(counts, 10)).toBe(100);
+    expect(topPercent(counts, 1, false)).toBe(10);
+    const solo = Array(BINS).fill(0);
+    solo[5] = 1;
+    expect(topPercent(solo, 5)).toBeNull();
   });
   it('emoji', () => {
     expect(emojiFor(1.1)).toBe('🎯');

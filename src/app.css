@@ -381,28 +381,6 @@ select {
   font-family: var(--font-hand);
 }
 
-/* Sheets (settings, calculator, profile). */
-dialog.sheet-dialog {
-  border: none;
-  padding: 0;
-  margin: auto auto 0;
-  width: min(100%, 32rem);
-  max-height: 92dvh;
-  border-radius: 22px 22px 0 0;
-  background: var(--page);
-  color: var(--ink);
-  box-shadow: 0 -12px 40px rgb(0 0 0 / 0.25);
-}
-@media (min-width: 40rem) {
-  dialog.sheet-dialog {
-    margin: auto;
-    border-radius: 22px;
-  }
-}
-dialog.sheet-dialog::backdrop {
-  background: rgb(10 8 6 / 0.45);
-}
-
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
@@ -414,4 +392,104 @@ dialog.sheet-dialog::backdrop {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* ---------- Game cards (fermi-style), shared by home and /play ---------- */
+:root {
+  --card-q1: #d6432b; /* sindoor */
+  --card-q2: #2c3a9b; /* neel */
+  --card-q3: #17765a; /* mor (peacock) */
+  --card-done: #f2c230; /* haldi */
+  --on-card: #fff8ee;
+  --on-done: #1b1a2e;
+  --hl-text: #ffe27a; /* yellow that stays readable on every card colour */
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  interpolate-size: allow-keywords;
+}
+.lbl {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+/* White pill on a coloured card; text takes the card colour. */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  min-height: 3.1rem;
+  padding: 0 1.8rem;
+  border: none;
+  border-radius: 999px;
+  background: var(--on-card);
+  color: var(--pill-ink, var(--card-q1));
+  font-weight: 800;
+  font-size: 0.92rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  text-decoration: none;
+  cursor: pointer;
+  box-shadow: 0 12px 24px -14px rgb(0 0 0 / 0.55);
+  transition:
+    transform 0.22s var(--ease-out),
+    box-shadow 0.22s var(--ease-out),
+    opacity 0.2s ease;
+}
+.pill:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 28px -14px rgb(0 0 0 / 0.6);
+}
+.pill:active {
+  transform: translateY(0) scale(0.97);
+}
+.pill[disabled] {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+.pill .arrow {
+  transition: transform 0.22s var(--ease-out);
+}
+.pill:hover .arrow {
+  transform: translateX(3px);
+}
+/* Outlined round button on a card (calculator). */
+.round-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 3.1rem;
+  height: 3.1rem;
+  flex: none;
+  border-radius: 999px;
+  border: 2px solid color-mix(in srgb, currentColor 55%, transparent);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  transition:
+    transform 0.2s var(--ease-out),
+    background-color 0.2s ease;
+}
+.round-btn:hover {
+  background: color-mix(in srgb, currentColor 12%, transparent);
+}
+.round-btn:active {
+  transform: scale(0.94);
+}
+.btn,
+.chip,
+.icon-btn {
+  transition:
+    transform 0.22s var(--ease-out),
+    filter 0.2s ease,
+    background-color 0.2s ease,
+    box-shadow 0.22s var(--ease-out);
+}
+.btn:hover {
+  transform: translateY(-1px);
+}
+.btn:active,
+.chip:active {
+  transform: scale(0.97);
 }

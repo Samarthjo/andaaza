@@ -1,4 +1,4 @@
-import { bucketOf, dayScore, factorOf } from '$lib/core/score';
+import { dayScore, factorOf, guessBin } from '$lib/core/score';
 import type { Puzzle } from '$lib/data/puzzle';
 import { online, recordAnswer, recordGame } from './online';
 import { loadGame, saveGame, sessionId, type SavedGame } from './storage';
@@ -36,7 +36,7 @@ export function lockGuess(puzzle: Puzzle, game: SavedGame, guess: number): Saved
       questionId: q.id,
       guess,
       factor: factorOf(guess, q.answer),
-      bucket: bucketOf(guess, q.answer)
+      bucket: guessBin(guess, q.answer)
     });
   }
   return next;

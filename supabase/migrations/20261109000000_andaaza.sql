@@ -1,6 +1,10 @@
--- Andaaza optional online mode: crowd histograms, leaderboard, question submissions.
--- Tables are locked behind RLS with no policies; the browser only ever calls the
+-- Andaaza online mode: crowd histograms, leaderboard, question submissions.
+-- Tables are locked behind RLS with no policies; the browser only calls the
 -- SECURITY DEFINER functions below, which validate every argument.
+--
+-- Histograms use 21 log-scale bins (see src/lib/core/score.ts):
+--   guesses: guess/answer from ÷10 (bin 0) to ×10 (bin 20); bin 10 is the answer
+--   day scores: 1× (bin 0) to 1000× (bin 20)
 
 create table if not exists public.andaaza_answers (
   session      text        not null check (char_length(session) between 8 and 64),
@@ -10,7 +14,7 @@ create table if not exists public.andaaza_answers (
   question_id  text        not null check (char_length(question_id) <= 16),
   guess        double precision not null check (guess > 0),
   factor       double precision not null check (factor >= 1),
-  bucket       smallint    not null check (bucket between 0 and 8),
+  bucket       smallint    not null check (bucket between 0 and 20),
   created_at   timestamptz not null default now(),
   primary key (session, puzzle_date, idx)
 );
@@ -70,8 +74,7 @@ begin
   on conflict do nothing;
 end $$;
 
--- Crowd data for one puzzle: per-question guess buckets (9 each) and day-score buckets
--- aligned with SCORE_EDGES in src/lib/core/score.ts: 1.25, 1.5, 2, 3, 5, 10, 30, 100, 1000.
+-- Crowd data for one puzzle: 21-bin guess histogram per question and a 21-bin day-score histogram.
 create or replace function public.andaaza_puzzle_stats(p_date date)
 returns json
 language sql stable security definer set search_path = public as $$
@@ -79,23 +82,20 @@ language sql stable security definer set search_path = public as $$
     select i as idx, array(
       select coalesce((select count(*) from andaaza_answers a
                        where a.puzzle_date = p_date and a.idx = i and a.bucket = b), 0)::int
-      from generate_series(0, 8) b order by b
+      from generate_series(0, 20) b order by b
     ) as counts
     from generate_series(0, 2) i
   ),
   s as (
-    select case
-      when score <= 1.25 then 0 when score <= 1.5 then 1 when score <= 2 then 2
-      when score <= 3 then 3 when score <= 5 then 4 when score <= 10 then 5
-      when score <= 30 then 6 when score <= 100 then 7 else 8 end as b
+    select least(20, greatest(0, floor(log(score) / (3.0 / 21))::int)) as b
     from andaaza_games where puzzle_date = p_date
   )
   select json_build_object(
     'players', (select count(*) from andaaza_games where puzzle_date = p_date),
     'buckets', (select json_agg(counts order by idx) from q),
-    'scores', (select json_agg(coalesce(c, 0) order by b)
-               from generate_series(0, 8) b
-               left join (select b as bb, count(*)::int as c from s group by b) x on x.bb = b)
+    'scores', (select json_agg(coalesce(c, 0) order by g.b)
+               from generate_series(0, 20) as g(b)
+               left join (select b as bb, count(*)::int as c from s group by b) x on x.bb = g.b)
   );
 $$;
 

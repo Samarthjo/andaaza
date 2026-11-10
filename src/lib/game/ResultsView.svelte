@@ -1,0 +1,200 @@
+<script lang="ts">
+  import { onMount } from 'svelte';
+  import { fly } from 'svelte/transition';
+  import { formatFactor } from '$lib/core/number';
+  import { dayScore, factorOf, scoreBin, scorePosition, sideOf, topPercent, verdictFor } from '$lib/core/score';
+  import type { Puzzle } from '$lib/data/puzzle';
+  import { copyText, shareCard, shareText } from '$lib/share';
+  import CardHeader from './CardHeader.svelte';
+  import CrowdChart from './CrowdChart.svelte';
+
+  let {
+    puzzle,
+    guesses,
+    scoreCrowd,
+    onreview
+  }: { puzzle: Puzzle; guesses: number[]; scoreCrowd: number[] | null; onreview: (i: number) => void } = $props();
+
+  const factors = $derived(puzzle.questions.map((q, i) => factorOf(guesses[i], q.answer)));
+  const score = $derived(dayScore(factors));
+  const top = $derived(scoreCrowd ? topPercent(scoreCrowd, scoreBin(score)) : null);
+  let status = $state('');
+  let shown = $state(1);
+
+  onMount(() => {
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      shown = score;
+      return;
+    }
+    const t0 = performance.now();
+    let raf = 0;
+    const step = (t: number) => {
+      const p = Math.min(1, (t - t0) / 1000);
+      shown = Math.exp(Math.log(score) * (1 - Math.pow(1 - p, 3)));
+      if (p < 1) raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  });
+
+  async function share() {
+    status = 'Making your card…';
+    const r = await shareCard(puzzle, guesses);
+    status = r === 'shared' ? 'Shared.' : r === 'downloaded' ? 'Card saved to your downloads.' : '';
+  }
+  async function copy() {
+    status = (await copyText(shareText(puzzle, guesses))) ? 'Copied. Paste it in your group chat.' : 'Copy failed. Select the text and copy it yourself.';
+  }
+</script>
+
+<div class="results">
+  <CardHeader {puzzle} answered={3} current="results" onjump={onreview} />
+
+  <div class="top" in:fly={{ y: 14, duration: 340, delay: 80 }}>
+    <span class="lbl">Score</span>
+    <p class="score num">{formatFactor(shown)}</p>
+    <span class="tag">{top !== null ? `Top ${top}%` : verdictFor(score).label}</span>
+  </div>
+
+  <div class="dist" in:fly={{ y: 14, duration: 340, delay: 200 }}>
+    <span class="lbl">How everyone did</span>
+    <CrowdChart kind="score" counts={scoreCrowd} you={scorePosition(score)} labels={['1×', '10×', '100×', '1,000×']} />
+  </div>
+
+  <div class="qs" in:fly={{ y: 14, duration: 340, delay: 300 }}>
+    <span class="lbl">Questions</span>
+    <ul>
+      {#each puzzle.questions as q, i (q.id)}
+        {@const side = sideOf(guesses[i], q.answer)}
+        <li>
+          <button onclick={() => onreview(i)}>
+            <span class="qt">{q.prompt}</span>
+            <span class="qf num">
+              <span aria-hidden="true">{side === 'high' ? '>' : side === 'low' ? '<' : '='}</span>
+              <span class="visually-hidden">{side === 'high' ? 'too high by' : side === 'low' ? 'too low by' : 'exact,'}</span>
+              {formatFactor(factors[i])}
+            </span>
+          </button>
+        </li>
+      {/each}
+    </ul>
+  </div>
+
+  <div class="share">
+    <button class="dark" onclick={share}>Share card</button>
+    <button class="outline" onclick={copy}>Copy text</button>
+  </div>
+  <p class="status" role="status">{status}</p>
+</div>
+
+<style>
+  .results {
+    display: grid;
+    gap: 1.5rem;
+    --marker: #1b1a2e;
+    --marker-ink: var(--haldi);
+  }
+  .top {
+    display: grid;
+    justify-items: start;
+    gap: 0.35rem;
+    margin-top: 0.5rem;
+  }
+  .score {
+    font-family: var(--font-ui);
+    font-weight: 800;
+    font-size: clamp(4.2rem, 19vw, 7rem);
+    line-height: 0.95;
+    letter-spacing: -0.045em;
+  }
+  .tag {
+    padding: 0.2rem 0.75rem;
+    border-radius: 999px;
+    background: #1b1a2e;
+    color: var(--haldi);
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+  .dist,
+  .qs {
+    display: grid;
+    gap: 0.25rem;
+  }
+  ul {
+    list-style: none;
+    margin: 0.3rem 0 0;
+    padding: 0;
+  }
+  li + li {
+    border-top: 1px solid rgb(27 26 46 / 0.2);
+  }
+  li button {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem 0;
+    border: none;
+    background: none;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+  .qt {
+    font-weight: 700;
+    font-size: 0.95rem;
+    line-height: 1.35;
+  }
+  li button:hover .qt {
+    text-decoration: underline;
+  }
+  .qf {
+    flex: none;
+    font-weight: 800;
+    font-size: 1.15rem;
+    white-space: nowrap;
+  }
+  .share {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+  .share button {
+    min-height: 3rem;
+    padding: 0 1.6rem;
+    border-radius: 999px;
+    font-weight: 800;
+    font-size: 0.85rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition:
+      transform 0.22s var(--ease-out),
+      background-color 0.2s ease;
+  }
+  .share button:hover {
+    transform: translateY(-2px);
+  }
+  .share button:active {
+    transform: scale(0.97);
+  }
+  .dark {
+    border: 2px solid #1b1a2e;
+    background: #1b1a2e;
+    color: var(--haldi);
+  }
+  .outline {
+    border: 2px solid #1b1a2e;
+    background: transparent;
+    color: #1b1a2e;
+  }
+  .status {
+    min-height: 1.2em;
+    margin-top: -0.75rem;
+    font-size: 0.88rem;
+    font-weight: 600;
+  }
+</style>
