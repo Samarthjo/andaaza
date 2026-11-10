@@ -1,8 +1,8 @@
 name: Test
 
-# The live site is served by GitHub Pages straight from the docs/ folder on main
-# (Settings → Pages → Deploy from a branch → main → /docs). Rebuild it with
-# `npm run build:pages` and commit docs/. This workflow only checks the code.
+# GitHub Pages serves the prebuilt site from the root of main (Settings → Pages →
+# Deploy from a branch → main → / (root)). Rebuild it with `npm run build:pages`
+# and commit the result. This workflow only checks the code.
 
 on:
   push:

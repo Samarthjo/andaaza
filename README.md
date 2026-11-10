@@ -16,15 +16,18 @@ npm install
 npm run dev
 ```
 
-Live site: **https://samarthjo.github.io/andaaza/**, served by GitHub Pages
-from the `docs/` folder on `main` (Settings → Pages → Deploy from a branch →
-`main` → `/docs`).
+Live sites: **https://andaaza-two.vercel.app** (Vercel builds every push to `main`)
+and **https://samarthjo.github.io/andaaza/**, served by GitHub Pages straight from
+the root of `main` (Settings → Pages → Deploy from a branch → `main` → `/ (root)`).
 
-To publish changes, rebuild `docs/` and push:
+The Pages copy is prebuilt: `index.html`, the other `.html` pages and `_app/` at
+the repo root are build output, listed in `.pages-files` (`.nojekyll` stops Pages
+from rendering this README instead). Edit `src/`, never those files. To publish
+changes to Pages, rebuild and push:
 
 ```bash
 npm run build:pages
-git add docs && git commit -m "Rebuild site" && git push
+git add -A && git commit -m "Rebuild Pages site" && git push
 ```
 
 Plain production build (static files in `build/`, deployable to any static host):
