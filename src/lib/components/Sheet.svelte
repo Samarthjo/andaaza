@@ -10,9 +10,10 @@
   let {
     open = $bindable(false),
     side = 'bottom',
+    wide = false,
     labelledby,
     children
-  }: { open: boolean; side?: 'bottom' | 'left' | 'right'; labelledby: string; children: Snippet } = $props();
+  }: { open: boolean; side?: 'bottom' | 'left' | 'right'; wide?: boolean; labelledby: string; children: Snippet } = $props();
 
   let el: HTMLDialogElement | undefined = $state();
   let closing = $state(false);
@@ -38,6 +39,7 @@
 <dialog
   bind:this={el}
   class="sheet {side}"
+  class:wide
   class:closing
   aria-labelledby={labelledby}
   oncancel={(e) => {
@@ -92,6 +94,9 @@
   .bottom.closing,
   .right.closing {
     animation: down 0.23s ease-in both;
+  }
+  .bottom.wide {
+    max-width: 52rem;
   }
   @media (min-width: 40rem) {
     .bottom {

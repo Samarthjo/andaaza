@@ -214,7 +214,14 @@
   {/if}
 
   {#if puzzle}
-    <Calculator bind:open={calcOpen} dateKey={puzzle.dateKey} {numberStyle} onuse={(v) => (draft = v)} />
+    <Calculator
+      bind:open={calcOpen}
+      dateKey={puzzle.dateKey}
+      qIndex={idx}
+      {numberStyle}
+      canUse={phase === 'guess'}
+      onuse={(v) => (draft = v)}
+    />
   {/if}
 {/if}
 

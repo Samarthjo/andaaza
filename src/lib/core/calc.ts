@@ -1,8 +1,8 @@
 /**
  * Small, safe arithmetic evaluator for the in-game calculator.
- * Supports + - * / ^ %, parentheses, unary minus, × ÷, implicit multiplication
- * and magnitude words after a value (2 lakh, 3.5 cr, 4k, 1.2 billion).
- * No eval and no identifiers beyond the magnitude words.
+ * Supports + - * / ^ %, parentheses, unary minus, × ÷ − and x for times, π (or pi),
+ * implicit multiplication and magnitude words after a value (2 lakh, 3.5 cr, 4k,
+ * 1.2 billion). No eval and no identifiers beyond those words.
  */
 
 const MAGNITUDES: Record<string, number> = {
@@ -35,7 +35,7 @@ type Token =
 export class CalcError extends Error {}
 
 function tokenize(src: string): Token[] {
-  const s = src.replace(/×/g, '*').replace(/÷/g, '/').replace(/,/g, '').toLowerCase();
+  const s = src.replace(/×/g, '*').replace(/÷/g, '/').replace(/−/g, '-').replace(/,/g, '').toLowerCase();
   const out: Token[] = [];
   let i = 0;
   while (i < s.length) {
@@ -59,13 +59,20 @@ function tokenize(src: string): Token[] {
       if (!Number.isFinite(v)) throw new CalcError(`Bad number "${lit}"`);
       out.push({ t: 'num', v });
       i = j;
+    } else if (c === 'π') {
+      out.push({ t: 'num', v: Math.PI });
+      i++;
     } else if (/[a-z]/.test(c)) {
       let j = i;
       while (j < s.length && /[a-z]/.test(s[j])) j++;
       const word = s.slice(i, j);
-      const mult = MAGNITUDES[word];
-      if (mult === undefined) throw new CalcError(`Unknown word "${word}"`);
-      out.push({ t: 'mag', v: mult });
+      if (word === 'x') out.push({ t: 'op', v: '*' });
+      else if (word === 'pi') out.push({ t: 'num', v: Math.PI });
+      else {
+        const mult = MAGNITUDES[word];
+        if (mult === undefined) throw new CalcError(`Unknown word "${word}"`);
+        out.push({ t: 'mag', v: mult });
+      }
       i = j;
     } else if ('+-*/^%'.includes(c)) {
       out.push({ t: 'op', v: c as '+' });

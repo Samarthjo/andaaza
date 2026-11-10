@@ -219,7 +219,13 @@ describe('calculator', () => {
     ['2(3+4)', 14],
     ['1,00,000 + 5', 100_005],
     ['5e3 + 1', 5001],
-    ['3k ÷ 3', 1000]
+    ['3k ÷ 3', 1000],
+    ['10 − 4', 6],
+    ['3x4', 12],
+    ['3 x 4', 12],
+    ['2π', 2 * Math.PI],
+    ['20000 × π', 20000 * Math.PI],
+    ['2 pi', 2 * Math.PI]
   ])('%s = %s', (src, expected) => {
     expect(evaluate(src)).toBeCloseTo(expected as number, 6);
   });
@@ -228,6 +234,8 @@ describe('calculator', () => {
     expect(tryEvaluate('1/0')).toBeNull();
     expect(tryEvaluate('alert(1)')).toBeNull();
     expect(tryEvaluate('lakh')).toBeNull();
+    expect(tryEvaluate('2x')).toBeNull();
+    expect(tryEvaluate('xx')).toBeNull();
     expect(tryEvaluate('(2')).toBeNull();
     expect(tryEvaluate('')).toBeNull();
   });

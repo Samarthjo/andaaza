@@ -57,16 +57,95 @@ npm run test:e2e
 
 ## How it works
 
+Every day at midnight India time a new puzzle opens: three questions, one guess
+each, no Googling.
+
+<table>
+  <tr>
+    <td align="center" valign="top" width="33%">
+      <img src="screenshots/home.png" width="240" alt="Today's card reading Ek padha-likha tukka maaro, with a Play button"><br>
+      <b>1. Today's card</b><br>
+      <sub>Three topics, one tap to start.</sub>
+    </td>
+    <td align="center" valign="top" width="33%">
+      <img src="screenshots/question.png" width="240" alt="Question card with the guess 40 lakh typed in"><br>
+      <b>2. Guess</b><br>
+      <sub>Type 45000, 4.5 lakh or 2 crore. The card shows the number in full as you type.</sub>
+    </td>
+    <td align="center" valign="top" width="33%">
+      <img src="screenshots/calculator.png" width="240" alt="Calculator with round keys, lakh and crore buttons and a Use as my guess button"><br>
+      <b>3. Work it out</b><br>
+      <sub>Calculator with lakh and crore keys, π, and a scratch pad for each question.</sub>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" valign="top">
+      <img src="screenshots/reveal.png" width="240" alt="Reveal showing your guess, the answer with its source, how many times off, and a bar chart of everyone's guesses"><br>
+      <b>4. See the answer</b><br>
+      <sub>How many times off you were (1× is perfect) and where everyone else's guesses landed.</sub>
+    </td>
+    <td align="center" valign="top">
+      <img src="screenshots/mota-hisab.png" width="240" alt="Mota hisab panel showing one way to estimate the answer step by step"><br>
+      <b>5. Mota hisab</b><br>
+      <sub>One way to estimate it, step by step, and how close that gets.</sub>
+    </td>
+    <td align="center" valign="top">
+      <img src="screenshots/results.png" width="240" alt="Results card with the day's score, a verdict, a rank and a bar chart of everyone's scores"><br>
+      <b>6. Your score</b><br>
+      <sub>The average of your three misses, your rank and the day's spread. Share it as a card or text.</sub>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" valign="top">
+      <img src="screenshots/profile-panel.png" width="240" alt="You panel with played, day streak, average and best tiles and four colour themes"><br>
+      <b>You</b><br>
+      <sub>Stats, colour themes and (once accounts are on) sign-in.</sub>
+    </td>
+    <td align="center" valign="top">
+      <img src="screenshots/menu.png" width="240" alt="Menu with the archive grid, today's leaderboard, and Submit a question and Feedback tiles"><br>
+      <b>Menu</b><br>
+      <sub>Every past puzzle, the leaderboard, question ideas and feedback.</sub>
+    </td>
+    <td align="center" valign="top">
+      <img src="screenshots/how-to-play.png" width="240" alt="How to play section with tilted example cards"><br>
+      <b>Home page</b><br>
+      <sub>How to play, a word from Aryabhata and an FAQ under today's card.</sub>
+    </td>
+  </tr>
+</table>
+
+On a laptop:
+
+<p>
+  <img src="screenshots/desktop-results.png" width="49%" alt="Results on a laptop: score on the left, everyone's scores on the right">
+  <img src="screenshots/desktop-calculator.png" width="49%" alt="Calculator on a laptop: lined scratch pad on the left, keypad on the right">
+</p>
+
+<sub>Screenshots come from `npm run test:e2e`, which fills the crowd charts and
+leaderboard with sample data. More (dark mode, FAQ, laptop home page) in
+[`screenshots/`](screenshots/).</sub>
+
+### Scoring
+
+- Each guess scores how many times off it was: `max(guess / answer, answer / guess)`.
+  1× is perfect, 2× means half or double.
+- The day's score is the geometric mean of the three, each capped at 1,000×. Lower is better.
+- The crowd charts bucket guesses on a log scale from ÷10 to ×10 of the answer, and
+  day scores from 1× to 1,000×.
+
+### Where things live
+
 | Piece | Where |
 | --- | --- |
-| Scoring: factor = max(guess/answer, answer/guess); day = geometric mean, each capped at 1000× | `src/lib/core/score.ts` |
+| Scoring, verdicts, crowd buckets and ranks | `src/lib/core/score.ts` |
 | Guess parsing and Indian/international number formatting | `src/lib/core/number.ts` |
-| Calculator (safe parser, no eval) | `src/lib/core/calc.ts` |
+| Calculator maths (safe parser, no eval) | `src/lib/core/calc.ts` |
 | Daily rotation in Asia/Kolkata, puzzle numbers, countdown | `src/lib/core/date.ts` |
 | Question bank (48 questions) and 16-day schedule | `src/lib/data/` |
-| Game screens | `src/routes/play`, `src/lib/components` |
+| Game cards (intro, question, reveal, results, charts) | `src/lib/game/` |
+| Panels, calculator, sheets, icons | `src/lib/components/` |
 | Local persistence (`andaaza:v1:*` in localStorage) | `src/lib/state/storage.ts` |
-| Optional online mode | `src/lib/state/online.ts`, `supabase/migrations` |
+| Online mode, accounts and sync | `src/lib/state/`, `supabase/migrations/` |
 
 `LAUNCH_DATE` in `src/lib/core/date.ts` sets puzzle No. 1. After the 16
 hand-curated days run out, a deterministic seeded rotation replays earlier
@@ -75,7 +154,7 @@ questions (marked "Rerun") until new ones are added to `SCHEDULE`.
 ## Adding questions
 
 1. Add an entry to `src/lib/data/questions.ts` with answer, unit, source, year,
-   confidence and a napkin-maths walkthrough.
+   confidence and a mota hisab walkthrough (the `napkin` field).
 2. Add a triple of ids to the end of `src/lib/data/schedule.ts`.
 3. `npm test`: the bank tests fail on a missing field, duplicate id, unscheduled
    question, or a mota hisab (the `napkin` field) that lands more than 1.5× from the answer.
