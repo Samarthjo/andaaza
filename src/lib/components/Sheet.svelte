@@ -1,7 +1,7 @@
 <!--
   Animated modal sheet built on <dialog> (focus trap, Escape, inert page for free).
   side="bottom": slides up. side="left": full-height panel from the left.
-  side="right": bottom sheet on phones, full-height panel from the right on wide screens.
+  side="right": full-height panel from the right.
   Closing plays the exit animation before the dialog actually closes.
 -->
 <script lang="ts">
@@ -91,6 +91,9 @@
   dialog.fallback.left[open] {
     inset: 0 auto 0 0;
   }
+  dialog.fallback.right[open] {
+    inset: 0 0 0 auto;
+  }
   dialog::backdrop {
     background: rgb(12 10 8 / 0.45);
     animation: fade-in 0.3s ease both;
@@ -105,17 +108,34 @@
     overscroll-behavior: contain;
   }
 
-  .bottom,
+  /* Side panels (You, Settings): a full-height drawer on every screen, the mirror image of
+     the menu. iPhone Safari failed to show these as bottom sheets placed with auto margins. */
   .right {
-    margin: auto auto 0;
+    margin: 0 0 0 auto;
+    width: min(94vw, 27rem);
+    max-width: 94vw;
+    height: 100dvh;
+    max-height: 100dvh;
+    border-radius: 26px 0 0 26px;
+    animation: from-right 0.38s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+  .right.closing {
+    animation: to-right 0.23s ease-in both;
+  }
+
+  /* Bottom sheet (calculator): pinned to the bottom edge with a fixed height on phones,
+     a centred card on wider screens. */
+  .bottom {
+    inset: auto 0 0 0;
+    margin: 0 auto;
     width: 100%;
     max-width: 32rem;
+    height: 92dvh;
     max-height: 92dvh;
     border-radius: 24px 24px 0 0;
     animation: up 0.36s cubic-bezier(0.2, 0.8, 0.2, 1) both;
   }
-  .bottom.closing,
-  .right.closing {
+  .bottom.closing {
     animation: down 0.23s ease-in both;
   }
   .bottom.wide {
@@ -123,26 +143,14 @@
   }
   @media (min-width: 40rem) {
     .bottom {
+      inset: 0;
       margin: auto;
+      height: fit-content;
       border-radius: 24px;
       animation-name: pop;
     }
     .bottom.closing {
       animation-name: unpop;
-    }
-  }
-  @media (min-width: 48rem) {
-    .right {
-      margin: 0 0 0 auto;
-      width: 27rem;
-      max-width: 27rem;
-      height: 100dvh;
-      max-height: 100dvh;
-      border-radius: 26px 0 0 26px;
-      animation-name: from-right;
-    }
-    .right.closing {
-      animation-name: to-right;
     }
   }
   .left {

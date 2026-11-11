@@ -144,6 +144,8 @@ if ((await page.locator('#calc-expr').inputValue()) !== '2 lakh × 6') fail('key
 if (!/Q2/.test(await page.locator('.scratch .qn').innerText())) fail('scratch pad not labelled for Q2');
 await page.locator('#calc-notes').fill('6 lakh villages × 2 booths');
 await sheetFits('calculator');
+const calcBox = await page.locator('dialog[open]').boundingBox();
+if (!calcBox || calcBox.y < 0 || Math.abs(calcBox.y + calcBox.height - 844) > 1) fail(`calculator sheet not pinned to the bottom: ${JSON.stringify(calcBox)}`);
 await page.locator('#calc-expr').focus();
 await page.evaluate(() => document.querySelector('dialog[open] .body').scrollTo(0, 0));
 await page.mouse.move(0, 0);
@@ -213,15 +215,17 @@ if (!(await page.getByText('Day streak').isVisible())) fail('profile panel missi
 if ((await page.locator('.themes .theme').count()) !== 4) fail('profile panel should offer 4 themes');
 if (!(await page.getByRole('link', { name: 'Create account or log in' }).isVisible())) fail('guests get no login button');
 await sheetFits('profile');
+// Side panels are full-height drawers from the right (bottom sheets failed on iPhone Safari).
+const you = await page.locator('dialog[open]').boundingBox();
+if (!you || you.y > 1 || you.height < 840 || Math.abs(you.x + you.width - 390) > 1) fail(`You panel is not a right-hand drawer: ${JSON.stringify(you)}`);
 await shot('profile');
 // Guests who pick a colour theme are asked to log in first; the page stays on Haldi.
 await page.locator('.themes .theme', { hasText: 'Neel' }).click();
 await page.waitForURL(/\/login\?next=/);
 await page.getByText('Log in to switch to Neel.').waitFor();
 if ((await page.evaluate(() => document.documentElement.dataset.palette)) !== 'haldi') fail('a locked theme applied for a guest');
-// Google is always offered; until it's switched on in Supabase it explains instead of erroring.
-await page.getByRole('button', { name: 'Continue with Google' }).click();
-await page.getByText('Google login isn’t switched on yet').waitFor();
+// Google only shows once it's switched on in Supabase (the stub says it isn't).
+if (await page.getByRole('button', { name: 'Continue with Google' }).count()) fail('Google button shown while Google login is off');
 await page.waitForTimeout(500);
 await shot('login');
 

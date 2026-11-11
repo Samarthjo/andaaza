@@ -37,13 +37,13 @@
     <span class="no num">No. {puzzle.number}</span>
   </div>
 
-  <h1 class="headline" aria-label="Ek padha-likha tukka maaro." bind:this={headline}>
+  <h1 class="headline" aria-label="Ek padha-likha andaaza maaro." bind:this={headline}>
     <span class="line" aria-hidden="true"
       >Ek<span class="gap"
         ><svg class="caret" viewBox="0 0 24 16" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"
           ><path d="M2.5 14.5 Q7 8 12 2 Q16.5 8.5 21.5 14" /></svg
         ><span class="insert" bind:this={insert} style:--shift="{shift}px">padha-likha</span></span
-      >tukka maaro.</span
+      >andaaza maaro.</span
     >
   </h1>
 
@@ -84,7 +84,8 @@
     justify-items: center;
     font-family: var(--font-ui);
     font-weight: 800;
-    font-size: clamp(2.6rem, 10vw, 4.3rem);
+    /* "Ek ^ andaaza maaro." is ~7.9em wide: scale with the screen so it always fits the card. */
+    font-size: clamp(1.7rem, calc(12.4vw - 10px), 4.3rem);
     line-height: 0.95;
     letter-spacing: -0.035em;
     margin-top: clamp(1rem, 4vw, 2.1rem);
@@ -94,7 +95,7 @@
   .line {
     white-space: nowrap;
   }
-  /* The gap between "Ek" and "tukka": a proof-reader's caret with the insert written underneath it. */
+  /* The gap between "Ek" and "andaaza": a proof-reader's caret with the insert written underneath it. */
   .gap {
     position: relative;
     display: inline-block;

@@ -63,7 +63,7 @@ each, no Googling.
 <table>
   <tr>
     <td align="center" valign="top" width="33%">
-      <img src="screenshots/home.png" width="240" alt="Today's card reading Ek padha-likha tukka maaro, with a Play button"><br>
+      <img src="screenshots/home.png" width="240" alt="Today's card reading Ek padha-likha andaaza maaro, with a Play button"><br>
       <b>1. Today's card</b><br>
       <sub>Three topics, one tap to start.</sub>
     </td>
@@ -220,8 +220,8 @@ on every device, and their name on the leaderboard.
   the link was already used.
 - Google: create an OAuth client in Google Cloud (redirect URI
   `https://pqvppabcdbenzrlbxzkw.supabase.co/auth/v1/callback`) and paste its ID and
-  secret into Authentication → Sign In / Providers → Google. Until then the "Continue
-  with Google" button explains that Google login isn't on yet.
+  secret into Authentication → Sign In / Providers → Google. The "Continue with
+  Google" button on `/login` appears by itself once it's on.
 - Builds without `VITE_ACCOUNTS=1` hide all of this and leave themes open to everyone.
 
 `node tests/e2e/accounts.mjs` runs the whole flow (locked theme, login form, email

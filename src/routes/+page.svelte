@@ -15,7 +15,7 @@
   }
 </script>
 
-<Meta title="Andaaza: the daily estimation game for India" description="Ek padha-likha tukka maaro. Three questions about India every day, one guess each, scored on how close you get." />
+<Meta title="Andaaza: the daily estimation game for India" description="Ek padha-likha andaaza maaro. Three questions about India every day, one guess each, scored on how close you get." />
 
 <div class="game">
   <Game start="intro" bind:phase bind:this={game} />

@@ -50,7 +50,7 @@
   <meta property="og:image:type" content="image/png" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
-  <meta property="og:image:alt" content="Andaaza: Ek padha-likha tukka maaro. The daily estimation game for India." />
+  <meta property="og:image:alt" content="Andaaza: Ek padha-likha andaaza maaro. The daily estimation game for India." />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:image" content={previewImage} />
 </svelte:head>
