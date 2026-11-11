@@ -2,8 +2,10 @@ import type { Question } from './types';
 
 /**
  * Original Andaaza question bank. Answers are the best public figures known at
- * writing time; anything marked medium/low confidence must be re-verified
- * against the named source before a public launch.
+ * writing time. On 2026-11-11 every medium-confidence answer was re-checked
+ * against current public sources and corrected where needed. Those still marked
+ * medium are widely quoted estimates (daily footfall, staff counts, pre-pandemic
+ * ridership) rather than exact official counts.
  */
 export const QUESTIONS: Question[] = [
   {
@@ -117,14 +119,14 @@ export const QUESTIONS: Question[] = [
   {
     id: 'a006',
     prompt: 'How long is the Indian Railways network, measured in route kilometres?',
-    answer: 68_584,
+    answer: 69_181,
     unit: { label: 'km' },
     category: 'rail',
     emoji: '🚆',
-    source: 'Indian Railways Year Book',
-    asOf: '2023',
+    source: 'Indian Railways Year Book 2023–24',
+    asOf: '2023–24',
     confidence: 'medium',
-    note: 'Route km counts a double-track line once. Running-track km is roughly 1.6× higher.',
+    note: 'Route km counts a double-track line once. Running-track km is roughly 1.6× higher. It was 68,043 km in March 2022.',
     napkin: {
       lead: 'Think of India as a grid of lines a few hundred kilometres apart.',
       steps: [
@@ -230,7 +232,7 @@ export const QUESTIONS: Question[] = [
     emoji: '🌕',
     source: 'Widely reported ISRO/Department of Space estimate',
     asOf: '2023',
-    confidence: 'medium',
+    confidence: 'high',
     note: 'About ₹615 crore, cheaper than many Hollywood space films.',
     napkin: {
       lead: 'Big-budget Indian film × a few, or engineers × salary × years.',
@@ -315,10 +317,10 @@ export const QUESTIONS: Question[] = [
     unit: { label: 'vehicles' },
     category: 'roads',
     emoji: '🌉',
-    source: 'Kolkata Port Trust (Syama Prasad Mookerjee Port) estimates',
+    source: 'Widely cited estimate (the bridge is run by Kolkata Port Trust)',
     asOf: '2010s',
     confidence: 'medium',
-    note: 'Commonly cited as over 1 lakh vehicles plus about 1.5 lakh pedestrians a day.',
+    note: 'Commonly cited as about 1 lakh vehicles plus about 1.5 lakh pedestrians a day. It is an estimate: a 2007 report counted nearer 90,000 vehicles.',
     napkin: {
       lead: 'Lanes × vehicles per lane per hour × busy hours.',
       steps: [
@@ -354,14 +356,14 @@ export const QUESTIONS: Question[] = [
   {
     id: 'a017',
     prompt: 'How many visits did the Uttar Pradesh government say the 2025 Maha Kumbh at Prayagraj received over its 45 days?',
-    answer: 660_000_000,
+    answer: 662_100_000,
     unit: { label: 'visits' },
     category: 'culture',
     emoji: '🪔',
     source: 'Government of Uttar Pradesh (official closing figure)',
     asOf: '2025',
-    confidence: 'medium',
-    note: 'Official claim of about 66 crore holy dips. Counting methods (cameras, sampling) are debated and many people visited more than once.',
+    confidence: 'high',
+    note: 'The state government’s closing figure was 66.21 crore holy dips. Counting methods (cameras, sampling) are debated and many people visited more than once.',
     napkin: {
       lead: 'Daily footfall × 45 days, with spikes on bathing days.',
       steps: [
@@ -573,7 +575,7 @@ export const QUESTIONS: Question[] = [
     emoji: '🦁',
     source: 'Gujarat Forest Department, 16th Asiatic Lion Population Estimation',
     asOf: '2025',
-    confidence: 'medium',
+    confidence: 'high',
     note: 'Up from 674 in 2020. Gir and the wider Saurashtra landscape are the only wild home of the Asiatic lion.',
     napkin: {
       lead: 'Prides × lions per pride, plus wanderers.',
@@ -674,9 +676,9 @@ export const QUESTIONS: Question[] = [
     unit: { label: 'km' },
     category: 'nature',
     emoji: '🏖️',
-    source: 'Ministry of Home Affairs / National Hydrographic Office',
+    source: 'Ministry of Earth Sciences / National Hydrographic Office and Survey of India',
     asOf: '2025',
-    confidence: 'medium',
+    confidence: 'high',
     note: 'The older official figure was 7,516.6 km. New methods trace the coast in finer detail, so it grew.',
     napkin: {
       lead: 'Mainland coast plus two island chains, then add wiggles.',
@@ -692,14 +694,14 @@ export const QUESTIONS: Question[] = [
   {
     id: 'a033',
     prompt: 'How long is India’s national highway network?',
-    answer: 146_000,
+    answer: 146_195,
     unit: { label: 'km' },
     category: 'roads',
     emoji: '🛣️',
-    source: 'Ministry of Road Transport & Highways',
+    source: 'Ministry of Road Transport & Highways, Annual Report 2024–25',
     asOf: '2024',
-    confidence: 'medium',
-    note: 'About 1.46 lakh km. Up from about 91,000 km in 2014.',
+    confidence: 'high',
+    note: 'About 1.46 lakh km (146,195 km). Up from about 91,000 km in 2014.',
     napkin: {
       lead: 'Area × highway density.',
       steps: [
@@ -779,10 +781,10 @@ export const QUESTIONS: Question[] = [
     unit: { label: 'years' },
     category: 'heritage',
     emoji: '🕌',
-    source: 'Archaeological Survey of India',
+    source: 'Standard histories of the Taj Mahal',
     asOf: '1632–1653',
     confidence: 'medium',
-    note: 'The mausoleum was largely done by 1643; the gardens, mosque and gateway took about another decade.',
+    note: 'Work is usually dated 1632 to 1653 and quoted as about 22 years (some count from 1631). The tomb itself was finished around 1648; the gardens, mosque and gateway took about five more years.',
     napkin: {
       lead: 'Marble volume ÷ how fast a big workforce could carve and place it.',
       steps: [
@@ -802,7 +804,7 @@ export const QUESTIONS: Question[] = [
     emoji: '📱',
     source: 'NPCI monthly UPI statistics',
     asOf: 'Aug 2025',
-    confidence: 'medium',
+    confidence: 'high',
     note: 'The first month UPI crossed 20 billion (2,000 crore) transactions.',
     napkin: {
       lead: 'Users × payments per day × days.',
@@ -838,23 +840,23 @@ export const QUESTIONS: Question[] = [
   },
   {
     id: 'a040',
-    prompt: 'How many passenger journeys do Mumbai’s suburban local trains carry on a typical weekday?',
-    answer: 7_500_000,
+    prompt: 'Before the pandemic, how many passenger journeys did Mumbai’s suburban local trains carry on an average day?',
+    answer: 7_800_000,
     unit: { label: 'journeys' },
     category: 'rail',
     emoji: '🚃',
-    source: 'Central Railway & Western Railway',
-    asOf: '2019',
+    source: 'Central Railway & Western Railway ridership figures',
+    asOf: '2018–19',
     confidence: 'medium',
-    note: 'Pre-pandemic figure of about 75 lakh. It has been somewhat lower since.',
+    note: 'About 78 lakh a day in 2018–19: roughly 43 lakh on Central and 35 lakh on Western. The yearly daily average has been lower since (about 68 lakh in 2025–26).',
     napkin: {
       lead: 'Services × riders per service.',
       steps: [
         ['Local train services per day (all lines)', '~3,000'],
-        ['Average riders per service', '~2,500'],
-        ['3,000 × 2,500', '≈ 75 lakh']
+        ['Average riders per service', '~2,600'],
+        ['3,000 × 2,600', '≈ 78 lakh']
       ],
-      estimate: 7_500_000
+      estimate: 7_800_000
     }
   },
   {
@@ -866,7 +868,7 @@ export const QUESTIONS: Question[] = [
     emoji: '🥛',
     source: 'Basic Animal Husbandry Statistics 2024, Govt. of India',
     asOf: '2023–24',
-    confidence: 'medium',
+    confidence: 'high',
     note: 'About 23.9 crore tonnes. India is the world’s largest milk producer.',
     napkin: {
       lead: 'People × milk per person per day × 365.',
@@ -909,7 +911,7 @@ export const QUESTIONS: Question[] = [
     emoji: '🪔',
     source: 'Guinness World Records / Govt. of Uttar Pradesh',
     asOf: '2024',
-    confidence: 'medium',
+    confidence: 'high',
     note: 'Counted by drone. The record is broken almost every year.',
     napkin: {
       lead: 'Ghat area × diyas per square metre.',
@@ -971,7 +973,7 @@ export const QUESTIONS: Question[] = [
     unit: { label: 'metres' },
     category: 'space',
     emoji: '🤖',
-    source: 'ISRO',
+    source: 'ISRO (over 100 m); Wikipedia lists 101.4 m',
     asOf: '2023',
     confidence: 'medium',
     napkin: {
@@ -1009,14 +1011,14 @@ export const QUESTIONS: Question[] = [
   {
     id: 'a048',
     prompt: 'Roughly how many post offices does India Post run?',
-    answer: 164_972,
+    answer: 164_999,
     unit: { label: 'post offices' },
     category: 'civic',
     emoji: '📮',
-    source: 'Department of Posts annual report',
-    asOf: '2024',
-    confidence: 'medium',
-    note: 'About 1.65 lakh, the largest postal network in the world. Most are rural branch post offices.',
+    source: 'India Post, Department of Posts (31 March 2025)',
+    asOf: '31 Mar 2025',
+    confidence: 'high',
+    note: 'About 1.65 lakh, the largest postal network in the world. About 1.49 lakh are in rural areas, mostly branch post offices.',
     napkin: {
       lead: 'Villages ÷ villages served by one branch.',
       steps: [
