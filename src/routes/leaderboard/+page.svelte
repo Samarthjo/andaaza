@@ -1,152 +1,399 @@
 <script lang="ts">
-  import { base } from '$app/paths';
   import { onMount } from 'svelte';
+  import { fade } from 'svelte/transition';
+  import { base } from '$app/paths';
   import { istDateKey } from '$lib/core/date';
   import { formatFactor } from '$lib/core/number';
+  import { fillBoard, fillCounts, sampleScoreCounts, scoreSpread, SPREAD_LABELS, type BoardEntry, type BoardRange } from '$lib/core/samples';
   import { auth } from '$lib/state/auth.svelte';
-  import { accountsEnabled, leaderboard, online, type BoardRow } from '$lib/state/online';
+  import { accountsEnabled, leaderboard, online, puzzleStats, streaks } from '$lib/state/online';
   import { settings } from '$lib/state/settings.svelte';
 
-  let range = $state<'today' | 'week'>('today');
-  let rows = $state<BoardRow[] | null>(null);
+  const TABS: { id: BoardRange; label: string; sub: string }[] = [
+    { id: 'today', label: 'Today', sub: 'Today’s top guessers.' },
+    { id: 'week', label: '7 days', sub: 'Best average over the last 7 days (3+ days played).' },
+    { id: 'all', label: 'All time', sub: 'Best average ever (3+ days played).' },
+    { id: 'streaks', label: 'Streaks', sub: 'Longest daily streaks going right now.' }
+  ];
+
+  let range = $state<BoardRange>('today');
+  let rows = $state<BoardEntry[] | null>(null);
+  let spread = $state<number[] | null>(null);
   let failed = $state(false);
+  let today = $state('');
+  let editing = $state(false);
   let nick = $state('');
+
+  const tab = $derived(TABS.find((t) => t.id === range) ?? TABS[0]);
+  const hasSamples = $derived(rows?.some((r) => r.sample) ?? false);
+  const me = $derived(auth.signedIn ? settings.value.nickname : '');
+  const maxPct = $derived(spread ? Math.max(1, ...spread) : 1);
 
   async function load() {
     rows = null;
     failed = false;
-    const r = await leaderboard(range, istDateKey());
-    if (r === null) failed = true;
-    else rows = r;
+    const r = range;
+    if (r === 'streaks') {
+      const s = await streaks(today);
+      if (r !== range) return;
+      if (s === null) failed = true;
+      else rows = fillBoard(s.map((x) => ({ nickname: x.nickname, score: x.streak, games: 0 })), today, 'streaks');
+    } else {
+      const s = await leaderboard(r, today);
+      if (r !== range) return;
+      if (s === null) failed = true;
+      else rows = fillBoard(s, today, r);
+    }
+  }
+
+  async function loadSpread() {
+    const stats = await puzzleStats(today);
+    spread = scoreSpread(fillCounts(stats?.scores ?? null, (n) => sampleScoreCounts(today, n)));
+  }
+
+  function pick(id: BoardRange) {
+    if (id === range) return;
+    range = id;
+    load();
+  }
+
+  function saveName(e: SubmitEvent) {
+    e.preventDefault();
+    settings.update({ nickname: nick.trim().slice(0, 24) });
+    editing = false;
+    load();
   }
 
   onMount(() => {
-    nick = settings.value.nickname;
-    if (online) load();
+    today = istDateKey();
+    if (!online) return;
+    load();
+    loadSpread();
   });
 </script>
 
 <svelte:head>
-  <title>Andaaza leaderboard</title>
+  <title>Leaderboard · Andaaza</title>
 </svelte:head>
 
-<section class="page">
+<section class="board">
   <h1>Leaderboard</h1>
+  <p class="sub">{tab.sub}</p>
 
   {#if !online}
     <p class="sub">The leaderboard isn’t switched on for this copy of Andaaza. Your own scores are on the <a href="{base}/stats">stats page</a>.</p>
   {:else}
+    <div class="tabs" role="tablist" aria-label="Leaderboard">
+      {#each TABS as t (t.id)}
+        <button role="tab" aria-selected={range === t.id} class="tab" class:on={range === t.id} onclick={() => pick(t.id)}>{t.label}</button>
+      {/each}
+    </div>
+
     {#if accountsEnabled && !auth.signedIn}
-      <p class="sub"><a href="{base}/login?next=%2Fleaderboard">Log in</a> to put your name on the board.</p>
-    {:else}
-    <form
-      class="nick"
-      onsubmit={(e) => {
-        e.preventDefault();
-        settings.update({ nickname: nick.trim().slice(0, 24) });
-      }}
-    >
-      <label for="nick">Your name on the board</label>
-      <div class="row">
-        <input id="nick" bind:value={nick} maxlength="24" placeholder="Leave blank to stay off the board" />
-        <button class="btn secondary" type="submit">Save name</button>
+      <div class="banner">
+        <p>Log in to join the leaderboard.</p>
+        <a class="yellow" href="{base}/login?next=%2Fleaderboard">Log in</a>
       </div>
-      <p class="help">Applies to puzzles you finish from now on.</p>
-    </form>
+    {:else if auth.signedIn || !accountsEnabled}
+      <div class="banner">
+        {#if editing}
+          <form class="namebox" onsubmit={saveName}>
+            <label class="visually-hidden" for="nick">Your name on the board</label>
+            <input id="nick" bind:value={nick} maxlength="24" placeholder="Leave blank to stay off it" />
+            <button class="yellow" type="submit">Save</button>
+          </form>
+        {:else}
+          <p>
+            {#if settings.value.nickname}You’re on the board as <strong>{settings.value.nickname}</strong>.{:else}Add a name to join the leaderboard.{/if}
+          </p>
+          <button class="yellow" onclick={() => ((nick = settings.value.nickname), (editing = true))}>
+            {settings.value.nickname ? 'Change name' : 'Add name'}
+          </button>
+        {/if}
+      </div>
     {/if}
 
-    <div class="filters" role="group" aria-label="Period">
-      <button class="chip" aria-pressed={range === 'today'} onclick={() => ((range = 'today'), load())}>Today</button>
-      <button class="chip" aria-pressed={range === 'week'} onclick={() => ((range = 'week'), load())}>Last 7 days</button>
-    </div>
+    {#if range === 'today' && spread}
+      <figure class="spread" in:fade={{ duration: 200 }}>
+        <figcaption class="lbl">Today’s scores</figcaption>
+        <div class="bars" aria-hidden="true">
+          {#each spread as pct, i (i)}
+            <div class="col">
+              <span class="pct num">{pct}%</span>
+              <span class="bar" style="--h:{(pct / maxPct) * 100}%"></span>
+            </div>
+          {/each}
+        </div>
+        <div class="axis num" aria-hidden="true">
+          {#each SPREAD_LABELS as l (l)}<span>{l}</span>{/each}
+        </div>
+        <p class="visually-hidden">
+          {SPREAD_LABELS.map((l, i) => `${l}: ${spread?.[i]}%`).join(', ')}
+        </p>
+      </figure>
+    {/if}
 
     {#if failed}
       <p class="sub">Couldn’t reach the leaderboard. Check your connection and <button class="link" onclick={load}>try again</button>.</p>
     {:else if rows === null}
       <p class="sub">Loading…</p>
-    {:else if rows.length === 0}
-      <p class="sub">No named scores yet. Finish today’s puzzle with a name set to be first.</p>
     {:else}
-      <ol class="board card-list">
-        {#each rows as r, i (i)}
-          <li>
-            <span class="rank num">{i + 1}</span>
-            <span class="who">{r.nickname}</span>
-            <span class="games">{range === 'week' ? `${r.games} played` : ''}</span>
-            <span class="sc num">{formatFactor(r.score)}</span>
-          </li>
-        {/each}
-      </ol>
+      <div class="table" in:fade={{ duration: 200 }}>
+        <div class="head lbl" aria-hidden="true">
+          <span>Rank</span><span>Player</span><span>{range === 'streaks' ? 'Days' : 'Score'}</span>
+        </div>
+        <ol>
+          {#each rows as r, i (i)}
+            <li class:me={!r.sample && me && r.nickname === me}>
+              <span class="rank num">{i + 1}</span>
+              <span class="who">
+                {r.nickname}
+                {#if range === 'week' || range === 'all'}<small>{r.games} days</small>{/if}
+              </span>
+              <span class="sc num">{range === 'streaks' ? r.score : formatFactor(r.score)}</span>
+            </li>
+          {/each}
+        </ol>
+      </div>
+      {#if hasSamples}<p class="note">Sample players fill the board until more people play.</p>{/if}
     {/if}
   {/if}
 </section>
 
 <style>
-  .page {
-    max-width: 40rem;
+  .board {
+    max-width: 48rem;
     margin: 0 auto;
-    padding: 0.75rem var(--gutter);
+    display: grid;
+    gap: 1.25rem;
+  }
+  h1 {
+    font-family: var(--font-ui);
+    font-weight: 800;
+    font-size: clamp(3.2rem, 13vw, 6rem);
+    line-height: 0.95;
+    letter-spacing: -0.05em;
+    margin-top: 0.5rem;
+  }
+  .sub {
+    color: var(--ink-soft);
+    font-size: 1.25rem;
+    margin-top: -0.25rem;
+  }
+  .tabs {
+    display: flex;
+    gap: 0.6rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding: 0.25rem 0;
+  }
+  .tabs::-webkit-scrollbar {
+    display: none;
+  }
+  .tab {
+    flex: none;
+    min-height: 2.9rem;
+    padding: 0 1.4rem;
+    border: none;
+    border-radius: 999px;
+    background: var(--surface);
+    color: var(--ink);
+    font-weight: 800;
+    font-size: 0.92rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition:
+      background-color 0.2s ease,
+      color 0.2s ease;
+  }
+  .tab.on {
+    background: #1b1a2e;
+    color: #fff;
+  }
+  .banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    padding: 1.4rem 1.6rem;
+    border-radius: 24px;
+    background: #1b1a2e;
+    color: #fff;
+    font-weight: 700;
+    font-size: 1.15rem;
+  }
+  .banner strong {
+    color: var(--haldi);
+  }
+  .yellow {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.9rem;
+    padding: 0 1.4rem;
+    border: none;
+    border-radius: 999px;
+    background: var(--haldi);
+    color: #1b1a2e;
+    font-weight: 800;
+    font-size: 1.05rem;
+    text-decoration: none;
+    cursor: pointer;
+    transition: transform 0.2s var(--ease-out);
+  }
+  .yellow:hover {
+    transform: translateY(-1px);
+  }
+  .namebox {
+    display: flex;
+    gap: 0.6rem;
+    width: 100%;
+  }
+  .namebox input {
+    flex: 1;
+    min-width: 0;
+    width: 0;
+    min-height: 2.9rem;
+    padding: 0 1rem;
+    border: none;
+    border-radius: 14px;
+    background: #fff;
+    color: #1b1a2e;
+    font-size: 1.05rem;
+  }
+  .spread {
+    margin: 0;
+    padding: 1.5rem 1.6rem 1.2rem;
+    border-radius: 24px;
+    background: var(--surface);
+    box-shadow: var(--shadow);
     display: grid;
     gap: 1rem;
   }
-  h1 {
-    font-size: var(--t-2xl);
-  }
-  .sub,
-  .help {
+  .spread .lbl {
     color: var(--ink-soft);
-    font-size: var(--t-sm);
   }
-  .nick {
+  .bars {
+    display: grid;
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+    gap: clamp(0.3rem, 1.4vw, 0.75rem);
+    height: 11rem;
+    align-items: end;
+  }
+  .col {
+    display: grid;
+    grid-template-rows: auto 1fr;
+    align-items: end;
+    justify-items: stretch;
+    height: 100%;
+  }
+  .pct {
+    justify-self: center;
+    margin-bottom: 0.35rem;
+    font-weight: 700;
+    font-size: clamp(0.72rem, 2.4vw, 0.95rem);
+    color: var(--ink-soft);
+  }
+  .bar {
+    height: max(6px, var(--h));
+    border-radius: 8px;
+    background: var(--card-q1);
+    transform-origin: bottom;
+    animation: grow 0.7s var(--ease-out) both;
+  }
+  @keyframes grow {
+    from {
+      transform: scaleY(0);
+    }
+  }
+  .axis {
+    display: grid;
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+    gap: clamp(0.3rem, 1.4vw, 0.75rem);
+    text-align: center;
+    color: var(--ink-soft);
+    font-size: clamp(0.68rem, 2.2vw, 0.88rem);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+  }
+  .table {
     display: grid;
     gap: 0.4rem;
   }
-  label {
-    font-weight: 600;
-  }
-  .row {
-    display: flex;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-  }
-  input {
-    flex: 1 1 12rem;
-    min-height: 3rem;
-    padding: 0 0.75rem;
-    border-radius: var(--radius);
-    border: 2px solid var(--rule);
-    background: var(--page-2);
-  }
-  .filters {
-    display: flex;
-    gap: 0.4rem;
-  }
-  .link {
-    background: none;
-    border: none;
-    padding: 0;
-    text-decoration: underline;
-    cursor: pointer;
-  }
-  .board li {
-    padding-inline: 1rem;
-  }
-  .board li {
+  .head,
+  li {
     display: grid;
-    grid-template-columns: 2rem 1fr auto auto;
+    grid-template-columns: 4.5rem minmax(0, 1fr) auto;
+    align-items: center;
     gap: 0.75rem;
-    align-items: baseline;
-    padding-block: 0.65rem;
+    padding: 0 1.6rem;
+  }
+  .head {
+    color: var(--ink-soft);
+    padding-top: 0.4rem;
+  }
+  ol {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    border-radius: 22px;
+    background: var(--surface);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  li {
+    min-height: 4.4rem;
+    font-size: 1.15rem;
+  }
+  li + li {
+    border-top: 1px solid var(--rule);
+  }
+  li.me {
+    background: color-mix(in srgb, var(--haldi) 28%, transparent);
   }
   .rank {
     color: var(--ink-soft);
+    font-weight: 700;
   }
-  .games {
-    font-size: var(--t-xs);
+  .who {
+    font-weight: 700;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .who small {
+    margin-left: 0.5rem;
     color: var(--ink-soft);
+    font-weight: 600;
+    font-size: 0.85rem;
   }
   .sc {
-    font-family: var(--font-display);
-    font-size: var(--t-lg);
+    font-weight: 800;
+    font-size: 1.3rem;
+  }
+  .note {
+    color: var(--ink-soft);
+    font-size: 0.85rem;
+    text-align: center;
+  }
+  .link {
+    border: none;
+    background: none;
+    padding: 0;
+    color: var(--answer);
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  @media (max-width: 30rem) {
+    .head,
+    li {
+      grid-template-columns: 2.5rem minmax(0, 1fr) auto;
+      padding: 0 1.1rem;
+    }
+    .banner {
+      padding: 1.2rem 1.25rem;
+    }
   }
 </style>

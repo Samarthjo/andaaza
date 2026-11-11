@@ -12,13 +12,23 @@
     puzzle,
     guesses,
     scoreCrowd,
+    scoreCrowdReal,
     onreview
-  }: { puzzle: Puzzle; guesses: number[]; scoreCrowd: number[] | null; onreview: (i: number) => void } = $props();
+  }: {
+    puzzle: Puzzle;
+    guesses: number[];
+    /** Chart counts (real scores topped up with sample ones). */
+    scoreCrowd: number[] | null;
+    /** Real scores only: ranks never count samples. */
+    scoreCrowdReal: number[] | null;
+    onreview: (i: number) => void;
+  } = $props();
 
   const factors = $derived(puzzle.questions.map((q, i) => factorOf(guesses[i], q.answer)));
   const score = $derived(dayScore(factors));
-  const rank = $derived(scoreCrowd ? rankLabel(scoreCrowd, scoreBin(score)) : null);
-  const players = $derived(scoreCrowd ? scoreCrowd.reduce((a, b) => a + b, 0) : 0);
+  const rank = $derived(scoreCrowdReal ? rankLabel(scoreCrowdReal, scoreBin(score)) : null);
+  const players = $derived(scoreCrowdReal ? scoreCrowdReal.reduce((a, b) => a + b, 0) : 0);
+  const sampled = $derived(!!scoreCrowd && scoreCrowd.reduce((a, b) => a + b, 0) > players);
   const verdict = $derived(verdictFor(score));
   let status = $state('');
   let shown = $state(1);
@@ -65,7 +75,7 @@
     </div>
     <div class="dist">
       <span class="lbl">How everyone did</span>
-      <CrowdChart kind="score" counts={scoreCrowd} you={scorePosition(score)} labels={['1×', '10×', '100×', '1,000×']} />
+      <CrowdChart kind="score" counts={scoreCrowd} you={scorePosition(score)} labels={['1×', '10×', '100×', '1,000×']} {sampled} />
     </div>
   </div>
 

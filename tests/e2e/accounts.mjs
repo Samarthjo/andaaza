@@ -53,6 +53,11 @@ await context.route(/supabase\.co\//, async (route) => {
     return json(200, {});
   }
   if (url.includes('/auth/v1/user')) return json(200, USER);
+  if (url.includes('/auth/v1/verify')) {
+    const body = JSON.parse(req.postData() || '{}');
+    if (body.token !== '246810') return json(403, { code: 'otp_expired', error_code: 'otp_expired', msg: 'Token has expired or is invalid' });
+    return json(200, { access_token: token, token_type: 'bearer', expires_in: 3600, expires_at: now + 3600, refresh_token: 'r2', user: USER });
+  }
   if (url.includes('/auth/v1/logout')) return route.fulfill({ status: 204, body: '' });
   if (url.includes('/auth/v1/authorize')) return route.fulfill({ status: 200, contentType: 'text/html', body: '<p>Google stub</p>' });
   if (url.includes('/rest/v1/andaaza_profiles')) {
@@ -138,6 +143,12 @@ await shot('you-signed-in');
 await page.getByRole('button', { name: 'Close', exact: true }).click();
 await page.waitForTimeout(400);
 
+// 4b. Opening the same link again must not log you out.
+await page.goto(base + '/about', { waitUntil: 'networkidle' });
+await page.goto(base + '/#error=access_denied&error_code=otp_expired&error_description=Email+link+is+invalid+or+has+expired', { waitUntil: 'networkidle' });
+await page.getByText('That login link was already used. You’re still logged in.').waitFor();
+if ((await palette()) !== 'mehendi') fail('a reused login link logged the player out');
+
 // 5. A fresh device (no local settings) gets the saved theme from the profile.
 await page.evaluate(() => localStorage.removeItem('andaaza:v1:settings'));
 await page.goto(base + '/', { waitUntil: 'networkidle' });
@@ -153,10 +164,29 @@ if (!(await page.getByRole('link', { name: 'Create account or log in' }).isVisib
 await page.getByRole('button', { name: 'Close', exact: true }).click();
 await page.waitForTimeout(400);
 
+// 6b. The 6-digit code from the email logs in too (for links opened on another device).
+await page.goto(base + '/login', { waitUntil: 'networkidle' });
+await page.locator('#login-name').fill('Asha');
+await page.locator('#login-email').fill('player@example.com');
+await page.getByRole('button', { name: 'Continue with email' }).click();
+await page.locator('#login-code').waitFor();
+await page.locator('#login-code').fill('111111');
+await page.getByRole('button', { name: 'Log in', exact: true }).click();
+await page.getByText('That code is wrong or has expired').waitFor();
+await page.locator('#login-code').fill('246810');
+await page.getByRole('button', { name: 'Log in', exact: true }).click();
+await page.getByText('Welcome, Asha! Colour themes are unlocked.').waitFor();
+await shot('code-login');
+await openYou();
+await page.locator('dialog[open]').getByRole('button', { name: 'Log out' }).click();
+await page.waitForTimeout(500);
+await page.getByRole('button', { name: 'Close', exact: true }).click();
+await page.waitForTimeout(400);
+
 // 7. Guests see a login link on the leaderboard; Google hands off to Supabase.
 await page.goto(base + '/leaderboard', { waitUntil: 'networkidle' });
 if (await page.locator('#nick').count()) fail('guests should not get a leaderboard name box');
-if (!(await page.getByRole('link', { name: 'Log in' }).first().isVisible())) fail('leaderboard login link missing');
+if (!(await page.getByRole('link', { name: 'Log in', exact: true }).isVisible())) fail('leaderboard login link missing');
 await page.goto(base + '/login', { waitUntil: 'networkidle' });
 await page.getByRole('button', { name: 'Continue with Google' }).click();
 await page.waitForURL(/\/auth\/v1\/authorize\?provider=google/);

@@ -17,6 +17,8 @@
 
   let el: HTMLDialogElement | undefined = $state();
   let closing = $state(false);
+  // Browsers without modal dialogs (iOS before 15.4) get a plain fixed overlay instead.
+  let fallback = $state(false);
   let timer: ReturnType<typeof setTimeout> | undefined;
 
   $effect(() => {
@@ -24,12 +26,19 @@
     if (open && !el.open) {
       clearTimeout(timer);
       closing = false;
-      el.showModal();
+      try {
+        el.showModal();
+        fallback = false;
+      } catch {
+        fallback = true;
+        el.setAttribute('open', '');
+      }
     } else if (!open && el.open && !closing) {
       const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
       closing = true;
       timer = setTimeout(() => {
-        el?.close();
+        if (typeof el?.close === 'function' && !fallback) el.close();
+        else el?.removeAttribute('open');
         closing = false;
       }, reduce ? 0 : 230);
     }
@@ -40,6 +49,7 @@
   bind:this={el}
   class="sheet {side}"
   class:wide
+  class:fallback
   class:closing
   aria-labelledby={labelledby}
   oncancel={(e) => {
@@ -52,6 +62,9 @@
   }}
   onclick={(e) => {
     if (e.target === el) open = false;
+  }}
+  onkeydown={(e) => {
+    if (fallback && e.key === 'Escape') open = false;
   }}
 >
   <div class="body">{@render children()}</div>
@@ -67,6 +80,16 @@
     color: var(--ink);
     box-shadow: 0 0 60px rgb(0 0 0 / 0.28);
     overflow: hidden;
+  }
+  dialog.fallback[open] {
+    position: fixed;
+    z-index: 1000;
+    inset: auto 0 0 0;
+    display: block;
+    box-shadow: 0 0 0 100vmax rgb(12 10 8 / 0.45);
+  }
+  dialog.fallback.left[open] {
+    inset: 0 auto 0 0;
   }
   dialog::backdrop {
     background: rgb(12 10 8 / 0.45);

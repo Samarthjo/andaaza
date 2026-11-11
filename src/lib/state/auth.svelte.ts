@@ -25,6 +25,8 @@ export function safeNext(next: string | null | undefined): string {
 
 function friendly(error: AuthError): string {
   const code = (error as AuthError & { code?: string }).code ?? '';
+  if (code === 'otp_expired' || code === 'otp_invalid' || /token has expired or is invalid/i.test(error.message))
+    return 'That code is wrong or has expired. Check it, or ask for a new email.';
   if (code === 'email_address_not_authorized' || /not authorized/i.test(error.message))
     return 'Email login isn’t open to everyone yet. Please try again later.';
   if (code === 'over_email_send_rate_limit' || error.status === 429)
@@ -44,7 +46,8 @@ class AuthStore {
   #starting: Promise<void> | null = null;
   #listeners: Listener[] = [];
   #loadedFor: string | null = null;
-  #fromLink = false;
+  #greet = false;
+  #linkError: 'used' | null = null;
   #queued: Partial<Profile> = {};
   #timer: ReturnType<typeof setTimeout> | undefined;
 
@@ -87,7 +90,15 @@ class AuthStore {
       return;
     }
     // Arriving from a login link (or Google): greet once the session is in.
-    this.#fromLink = /access_token=/.test(location.hash);
+    const hash = new URLSearchParams(location.hash.replace(/^#/, ''));
+    this.#greet = hash.has('access_token');
+    // A link that was already used or has expired comes back with an error instead. Left in
+    // the URL, auth-js would also log out whoever is already logged in on this device, so
+    // clear it first and explain.
+    if (hash.has('error') || hash.has('error_code') || hash.has('error_description')) {
+      this.#linkError = 'used';
+      location.hash = '';
+    }
     authProviders().then((p) => (this.providers = p));
     const { AuthClient } = await import('@supabase/auth-js');
     this.#client = new AuthClient({
@@ -107,6 +118,12 @@ class AuthStore {
     const { data } = await this.#client.getSession();
     this.#set(data.session);
     if (data.session) await this.#afterSignIn();
+    if (this.#linkError) {
+      this.notice = data.session
+        ? 'That login link was already used. You’re still logged in.'
+        : 'That login link was already used or has expired. Ask for a new one on the login page.';
+      this.#linkError = null;
+    }
     this.ready = true;
   }
 
@@ -143,8 +160,8 @@ class AuthStore {
     const merged = { ...current, ...patch };
     this.profile = merged;
     settings.fromProfile(stored ? merged : patch);
-    if (this.#fromLink) {
-      this.#fromLink = false;
+    if (this.#greet) {
+      this.#greet = false;
       this.notice = `Welcome${merged.name ? `, ${merged.name}` : ''}! Colour themes are unlocked.`;
     }
   }
@@ -186,10 +203,21 @@ class AuthStore {
     return error ? friendly(error) : null;
   }
 
+  /** Log in with the code from the email, for when the link opens on another device. */
+  async verifyCode(email: string, code: string): Promise<string | null> {
+    await this.init();
+    if (!this.#client) return 'Login isn’t available right now. Try again in a moment.';
+    this.#greet = true;
+    const { error } = await this.#client.verifyOtp({ email, token: code, type: 'email' });
+    if (error) this.#greet = false;
+    return error ? friendly(error) : null;
+  }
+
   /** Off to Google; the session comes back in the URL. */
   async signInWithGoogle(next = '/'): Promise<string | null> {
     await this.init();
     if (!this.#client) return 'Login isn’t available right now. Try again in a moment.';
+    if (!(await authProviders()).google) return 'Google login isn’t switched on yet. Use your email for now.';
     const { error } = await this.#client.signInWithOAuth({
       provider: 'google',
       options: { redirectTo: `${location.origin}${base}${safeNext(next)}` }

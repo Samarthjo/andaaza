@@ -62,8 +62,8 @@
     display: grid;
     justify-items: center;
     text-align: center;
-    gap: 1.1rem;
-    padding: 0.25rem 0 0.75rem;
+    gap: 0.9rem;
+    padding: 0.25rem 0 0.5rem;
   }
   .row {
     width: 100%;
@@ -84,10 +84,10 @@
     justify-items: center;
     font-family: var(--font-ui);
     font-weight: 800;
-    font-size: clamp(2.7rem, 11vw, 5.2rem);
+    font-size: clamp(2.6rem, 10vw, 4.3rem);
     line-height: 0.95;
     letter-spacing: -0.035em;
-    margin-top: clamp(1.5rem, 6vw, 3.5rem);
+    margin-top: clamp(1rem, 4vw, 2.1rem);
     /* Room for the hand-written insert that hangs below the line. */
     padding-bottom: 1.15em;
   }
@@ -124,7 +124,7 @@
     white-space: nowrap;
   }
   .meta {
-    margin-top: clamp(1rem, 4vw, 2.2rem);
+    margin-top: clamp(0.6rem, 2.5vw, 1.3rem);
     font-weight: 700;
     font-size: 0.95rem;
     letter-spacing: 0.12em;

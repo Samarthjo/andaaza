@@ -12,8 +12,9 @@
     kind,
     counts,
     you,
-    labels
-  }: { kind: 'guess' | 'score'; counts: number[] | null; you: number; labels: string[] } = $props();
+    labels,
+    sampled = false
+  }: { kind: 'guess' | 'score'; counts: number[] | null; you: number; labels: string[]; sampled?: boolean } = $props();
 
   const max = $derived(counts ? Math.max(0, ...counts) : 0);
   const hasData = $derived(max > 0);
@@ -42,7 +43,8 @@
       </span>
     {/each}
   </div>
-  {#if counts && !hasData}<figcaption>{kind === 'score' ? 'No scores yet' : 'No other guesses yet'}</figcaption>{/if}
+  {#if counts && !hasData}<figcaption>{kind === 'score' ? 'No scores yet' : 'No other guesses yet'}</figcaption>
+  {:else if sampled}<figcaption>Includes sample {kind === 'score' ? 'scores' : 'guesses'} until more people play</figcaption>{/if}
 </figure>
 
 <style>

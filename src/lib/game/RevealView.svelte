@@ -13,6 +13,7 @@
     guess,
     numberStyle,
     crowd,
+    crowdReal,
     nextLabel,
     onnext,
     oncalc
@@ -20,7 +21,10 @@
     question: Question;
     guess: number;
     numberStyle: NumberStyle;
+    /** Chart counts (real guesses topped up with sample ones). */
     crowd: number[] | null;
+    /** Real guesses only: "closer than X%" never counts samples. */
+    crowdReal: number[] | null;
     nextLabel: string;
     onnext: () => void;
     oncalc: () => void;
@@ -29,7 +33,8 @@
   const factor = $derived(factorOf(guess, question.answer));
   const side = $derived(sideOf(guess, question.answer));
   const sideText = $derived(side === 'high' ? 'Too high' : side === 'low' ? 'Too low' : 'Spot on');
-  const closer = $derived(crowd ? closerThanPercent(crowd, guessBin(guess, question.answer)) : null);
+  const closer = $derived(crowdReal ? closerThanPercent(crowdReal, guessBin(guess, question.answer)) : null);
+  const sampled = $derived(!!crowd && !!crowdReal && crowd.reduce((a, b) => a + b, 0) > crowdReal.reduce((a, b) => a + b, 0));
   const u = $derived(question.unit);
   const answerText = $derived(`${u.prefix ?? ''}${formatGrouped(question.answer, numberStyle)}`);
   const guessText = $derived(`${u.prefix ?? ''}${formatGrouped(guess, numberStyle)}`);
@@ -94,7 +99,7 @@
     </div>
     <div class="crowd">
       <span class="lbl">How everyone guessed</span>
-      <CrowdChart kind="guess" counts={crowd} you={guessPosition(guess, question.answer)} labels={axis} />
+      <CrowdChart kind="guess" counts={crowd} you={guessPosition(guess, question.answer)} labels={axis} sampled={sampled || (!!crowd && !crowdReal)} />
     </div>
   </div>
 

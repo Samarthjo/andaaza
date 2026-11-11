@@ -15,6 +15,8 @@
   let sending = $state(false);
   let sentTo = $state('');
   let error = $state('');
+  let code = $state('');
+  let verifying = $state(false);
   let nameEl: HTMLInputElement | undefined = $state();
   let emailEl: HTMLInputElement | undefined = $state();
 
@@ -48,6 +50,20 @@
     sending = false;
     if (err) error = err;
     else sentTo = m;
+  }
+
+  async function submitCode(e: SubmitEvent) {
+    e.preventDefault();
+    error = '';
+    const c = code.replace(/\D/g, '');
+    if (c.length < 6) {
+      error = 'Type the code from the email (6 digits).';
+      return;
+    }
+    verifying = true;
+    const err = await auth.verifyCode(sentTo, c);
+    verifying = false;
+    if (err) error = err;
   }
 
   async function google() {
@@ -85,9 +101,24 @@
       <div class="sent" role="status" in:fly={{ y: 10, duration: 260 }}>
         <span class="mailicon" aria-hidden="true"><Icon name="mail" size={26} /></span>
         <h2>Check your inbox</h2>
-        <p>We sent a login link to <strong>{sentTo}</strong>. Open it on this device to finish.</p>
+        <p>We sent a login link to <strong>{sentTo}</strong>. Open it once, on this device.</p>
+        <form class="code" onsubmit={submitCode} novalidate>
+          <label for="login-code">Reading it on another device? Type the code instead</label>
+          <div class="coderow">
+            <input
+              id="login-code"
+              bind:value={code}
+              inputmode="numeric"
+              autocomplete="one-time-code"
+              maxlength="10"
+              placeholder="123456"
+            />
+            <button class="primary" type="submit" disabled={verifying}>{verifying ? 'Checking…' : 'Log in'}</button>
+          </div>
+          {#if error}<p class="err" role="alert">{error}</p>{/if}
+        </form>
         <p class="soft small">
-          Nothing there? Check spam, or <button class="textbtn" onclick={() => (sentTo = '')}>use another email</button>.
+          Nothing there? Check spam, or <button class="textbtn" onclick={() => ((sentTo = ''), (error = ''))}>use another email</button>.
         </p>
       </div>
     {:else}
@@ -98,8 +129,7 @@
         </p>
       {/if}
 
-      {#if auth.providers.google}
-        <button class="google" type="button" onclick={google}>
+      <button class="google" type="button" onclick={google}>
           <svg viewBox="0 0 48 48" width="22" height="22" aria-hidden="true">
             <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
             <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
@@ -109,7 +139,6 @@
           Continue with Google
         </button>
         <div class="or" aria-hidden="true"><span>or</span></div>
-      {/if}
 
       <form onsubmit={submit} novalidate>
         <label for="login-name">Name</label>
@@ -339,6 +368,33 @@
     border-radius: 20px;
     background: color-mix(in srgb, var(--ink) 5%, transparent);
     overflow-wrap: anywhere;
+  }
+  .code {
+    width: 100%;
+    margin-top: 0.4rem;
+  }
+  .code label {
+    margin-top: 0;
+    letter-spacing: 0.06em;
+    text-transform: none;
+    font-size: 0.92rem;
+  }
+  .coderow {
+    display: flex;
+    gap: 0.5rem;
+  }
+  .coderow input {
+    flex: 1;
+    min-width: 0;
+    width: 0;
+    font-size: 1.3rem;
+    font-weight: 700;
+    letter-spacing: 0.3em;
+  }
+  .coderow .primary {
+    width: auto;
+    padding: 0 1.4rem;
+    flex: none;
   }
   .sent h2 {
     font-family: var(--font-ui);

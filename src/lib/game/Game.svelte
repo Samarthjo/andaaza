@@ -6,6 +6,7 @@
   import Countdown from '$lib/components/Countdown.svelte';
   import WeekStrip from '$lib/components/WeekStrip.svelte';
   import { daysBetween, isDateKey, istDateKey } from '$lib/core/date';
+  import { fillCounts, sampleGuessCounts, sampleScoreCounts } from '$lib/core/samples';
   import { puzzleFor, type Puzzle } from '$lib/data/puzzle';
   import { finishGame, lockGuess, openGame, recorded, reportPending } from '$lib/state/game';
   import { online, puzzleStats, type PuzzleStats } from '$lib/state/online';
@@ -45,6 +46,18 @@
   );
   const cardFg = $derived(phase === 'results' ? 'var(--on-done)' : 'var(--on-card)');
   const viewKey = $derived(`${phase}-${idx}`);
+
+  // Charts show the real crowd topped up with sample players (see samples.ts); percentages use real data only.
+  const crowdShown = $derived.by(() => {
+    if (!online || !puzzle) return null;
+    const key = `${puzzle.dateKey}:${idx}`;
+    return fillCounts(stats?.buckets?.[idx] ?? null, (n) => sampleGuessCounts(key, n));
+  });
+  const scoresShown = $derived.by(() => {
+    if (!online || !puzzle) return null;
+    const key = puzzle.dateKey;
+    return fillCounts(stats?.scores ?? null, (n) => sampleScoreCounts(key, n));
+  });
 
   onMount(() => {
     today = istDateKey();
@@ -191,13 +204,20 @@
                 question={puzzle.questions[idx]}
                 guess={game.guesses[idx]}
                 {numberStyle}
-                crowd={stats?.buckets?.[idx] ?? null}
+                crowd={crowdShown}
+                crowdReal={stats?.buckets?.[idx] ?? null}
                 nextLabel={nextLabel(idx)}
                 onnext={next}
                 oncalc={() => (calcOpen = true)}
               />
             {:else if phase === 'results'}
-              <ResultsView {puzzle} guesses={game.guesses} scoreCrowd={stats?.scores ?? null} onreview={jump} />
+              <ResultsView
+                {puzzle}
+                guesses={game.guesses}
+                scoreCrowd={scoresShown}
+                scoreCrowdReal={stats?.scores ?? null}
+                onreview={jump}
+              />
             {/if}
           </div>
         {/key}
@@ -229,7 +249,7 @@
   .gcard {
     --card-bg: var(--card-q1);
     position: relative;
-    width: min(100%, 46rem);
+    width: min(100%, 42rem);
     margin: 0 auto;
     border-radius: 30px;
     background: var(--card-bg);
@@ -278,7 +298,7 @@
     margin-top: 1.5rem;
   }
   .notice {
-    width: min(100%, 46rem);
+    width: min(100%, 42rem);
     margin: 0 auto 0.75rem;
     padding: 0.6rem 0.9rem;
     border-radius: 12px;
@@ -291,7 +311,7 @@
     padding: 3rem 1rem;
   }
   .after {
-    width: min(100%, 46rem);
+    width: min(100%, 42rem);
     margin: 1.5rem auto 0;
     display: grid;
     gap: 1rem;

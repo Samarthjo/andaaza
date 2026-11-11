@@ -2,6 +2,7 @@
   import { base } from '$app/paths';
   import { formatShortDate, istDateKey, playableDates, puzzleNumber } from '$lib/core/date';
   import { formatFactor } from '$lib/core/number';
+  import { fillBoard } from '$lib/core/samples';
   import { auth } from '$lib/state/auth.svelte';
   import { accountsEnabled, leaderboard, online, type BoardRow } from '$lib/state/online';
   import { settings } from '$lib/state/settings.svelte';
@@ -35,7 +36,7 @@
     played = dates.filter((k) => loadGame(k)?.completed).length;
     while (list.length % 7 !== 0 || list.length < 14) list.push({ key: null, no: 0, state: 'future', today: false });
     cells = list;
-    if (online) leaderboard('today', today).then((r) => (board = r));
+    if (online) leaderboard('today', today).then((r) => (board = r ? fillBoard(r, today, 'today') : null));
   });
 
   const pct = $derived(total ? Math.round((played / total) * 100) : 0);

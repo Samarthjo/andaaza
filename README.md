@@ -107,9 +107,9 @@ each, no Googling.
       <sub>Name and email, then a one-time link. Your theme and streak follow you to every device.</sub>
     </td>
     <td align="center" valign="top">
-      <img src="screenshots/menu.png" width="240" alt="Menu with the archive grid, today's leaderboard, and Submit a question and Feedback tiles"><br>
-      <b>Menu</b><br>
-      <sub>Every past puzzle, the leaderboard, question ideas and feedback.</sub>
+      <img src="screenshots/leaderboard.png" width="240" alt="Leaderboard with Today, 7 days, All time and Streaks tabs, a login banner, today's score spread and the ranked list"><br>
+      <b>Leaderboard</b><br>
+      <sub>Today, the last 7 days, all time and streaks, with the day's score spread.</sub>
     </td>
   </tr>
 </table>
@@ -122,7 +122,7 @@ On a laptop:
 </p>
 
 <sub>Screenshots come from `npm run test:e2e`, which fills the crowd charts and
-leaderboard with sample data. More (how to play, dark mode, FAQ, laptop home page) in
+leaderboard with sample data. More (menu, how to play, dark mode, FAQ, laptop home page) in
 [`screenshots/`](screenshots/).</sub>
 
 ### Scoring
@@ -190,6 +190,13 @@ Finished games that never reached the backend (played offline, or before online
 mode) are sent once on the next visit, so a player's own result always shows in
 the charts.
 
+While the game is new, sample players fill the gaps (`src/lib/core/samples.ts`): each
+guess and score chart is topped up to 100 entries and each leaderboard tab to 50 rows
+with random names, seeded by date so everyone sees the same crowd. Samples step aside
+as real players arrive, a small note says when they're showing, and "closer than X%"
+and "Top X%" only ever count real players. Set `CHART_TARGET` and `BOARD_TARGET` to 0
+to turn them off.
+
 ## Accounts
 
 Playing never needs an account. Colour themes do: a guest who taps a theme goes to
@@ -206,10 +213,15 @@ on every device, and their name on the leaderboard.
   Table Editor → `andaaza_profiles`.
 - Email delivery needs custom SMTP (Authentication → Emails). Supabase's built-in
   sender only reaches the project's own team.
+- The login screen also takes the 6-digit code from the email, for links opened on
+  another device. Add `{{ .Token }}` to the "Confirm signup" and "Magic Link"
+  templates (Authentication → Emails → Templates) so the code is in the email.
+- Opening a login link a second time no longer logs the player out; the site says
+  the link was already used.
 - Google: create an OAuth client in Google Cloud (redirect URI
   `https://pqvppabcdbenzrlbxzkw.supabase.co/auth/v1/callback`) and paste its ID and
-  secret into Authentication → Sign In / Providers → Google. The button on `/login`
-  appears by itself once it's on.
+  secret into Authentication → Sign In / Providers → Google. Until then the "Continue
+  with Google" button explains that Google login isn't on yet.
 - Builds without `VITE_ACCOUNTS=1` hide all of this and leave themes open to everyone.
 
 `node tests/e2e/accounts.mjs` runs the whole flow (locked theme, login form, email

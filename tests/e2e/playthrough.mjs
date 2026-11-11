@@ -35,6 +35,9 @@ await context.route('**/rest/v1/rpc/**', async (route) => {
   if (fn.startsWith('andaaza_puzzle_stats')) {
     return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ players: 120, buckets: [bell, bell, bell], scores }) });
   }
+  if (fn.startsWith('andaaza_streaks')) {
+    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([{ nickname: 'test-player', streak: 4 }]) });
+  }
   if (fn.startsWith('andaaza_leaderboard')) {
     return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([{ nickname: 'test-player', score: 1.31, games: 1 }]) });
   }
@@ -216,8 +219,26 @@ await page.locator('.themes .theme', { hasText: 'Neel' }).click();
 await page.waitForURL(/\/login\?next=/);
 await page.getByText('Log in to switch to Neel.').waitFor();
 if ((await page.evaluate(() => document.documentElement.dataset.palette)) !== 'haldi') fail('a locked theme applied for a guest');
+// Google is always offered; until it's switched on in Supabase it explains instead of erroring.
+await page.getByRole('button', { name: 'Continue with Google' }).click();
+await page.getByText('Google login isn’t switched on yet').waitFor();
 await page.waitForTimeout(500);
 await shot('login');
+
+// Leaderboard: tabs, guest banner, today's score spread, 50 rows (real players among sample ones)
+await page.goto(base + '/leaderboard', { waitUntil: 'networkidle' });
+await page.locator('.table li').first().waitFor();
+if ((await page.getByRole('tab').count()) !== 4) fail('leaderboard should have 4 tabs');
+if (!/Log in to join the leaderboard/.test(await page.locator('.banner').innerText())) fail('guest banner missing');
+if ((await page.locator('.spread .bar').count()) !== 8) fail('today’s score spread should have 8 bars');
+if ((await page.locator('.table li').count()) !== 50) fail(`leaderboard should list 50 rows, saw ${await page.locator('.table li').count()}`);
+if (!(await page.locator('.table li', { hasText: 'test-player' }).count())) fail('real player missing from the board');
+if (!(await page.getByText('Sample players fill the board').isVisible())) fail('sample note missing');
+await page.waitForTimeout(600);
+await shot('leaderboard');
+await page.getByRole('tab', { name: 'Streaks' }).click();
+await page.locator('.table li', { hasText: 'test-player' }).waitFor();
+if (!(await page.locator('.head').innerText()).toLowerCase().includes('days')) fail('streaks tab should count days');
 
 // Archive + replay an old puzzle
 await page.goto(base + '/archive', { waitUntil: 'networkidle' });

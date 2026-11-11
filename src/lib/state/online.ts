@@ -161,11 +161,15 @@ export interface BoardRow {
   games: number;
 }
 
-export async function leaderboard(range: 'today' | 'week', today: string): Promise<BoardRow[] | null> {
-  return rpc<BoardRow[]>('andaaza_leaderboard', {
-    p_range: range,
-    p_today: today
-  });
+export async function leaderboard(range: 'today' | 'week' | 'all', today: string): Promise<BoardRow[] | null> {
+  const r = await rpc<BoardRow[]>('andaaza_leaderboard', { p_range: range, p_today: today });
+  return r === null ? null : Array.isArray(r) ? r : [];
+}
+
+/** Current daily streaks of signed-in players, longest first. */
+export async function streaks(today: string): Promise<{ nickname: string; streak: number }[] | null> {
+  const r = await rpc<{ nickname: string; streak: number }[]>('andaaza_streaks', { p_today: today });
+  return r === null ? null : Array.isArray(r) ? r : [];
 }
 
 export function submitQuestion(q: { question: string; answer: string; source: string; name: string }) {
