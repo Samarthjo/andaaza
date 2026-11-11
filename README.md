@@ -195,8 +195,11 @@ While the game is new, sample players fill the gaps (`src/lib/core/samples.ts`):
 guess and score chart is topped up to 100 entries and each leaderboard tab to 15 rows
 with random names, seeded by date so everyone sees the same crowd and it reshuffles
 every day. Samples step aside as real players arrive, a small note says when they're
-showing, and "closer than X%" and "Top X%" only ever count real players. Set
-`CHART_TARGET` and `BOARD_TARGET` to 0 to turn them off.
+showing, and "closer than X%" and "Top X%" only ever count real players. Nobody, sample
+or real, can show more days than there have been puzzles: on puzzle No. 11 the all-time
+and streak tabs top out at 11 days, and the database refuses games dated before launch
+(`20261111200000_launch_bounds.sql`). Set `CHART_TARGET` and `BOARD_TARGET` to 0 to turn
+the samples off.
 
 Games and guesses recorded before launch were testing and never count
 (`is_test`, `supabase/migrations/20261111170000_real_players.sql`), unless the player

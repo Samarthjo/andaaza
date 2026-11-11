@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { dateForPuzzle, puzzleNumber } from './date';
 import { BINS } from './score';
 import {
   BOARD_TARGET,
@@ -60,6 +61,21 @@ describe('sample leaderboard', () => {
       expect(day2.map((r) => r.score)).not.toEqual(day1.map((r) => r.score));
     }
     expect(sampleScoreCounts('2026-11-12', CHART_TARGET)).not.toEqual(sampleScoreCounts('2026-11-11', CHART_TARGET));
+  });
+
+  it('never gives a sample player more days than there have been puzzles', () => {
+    for (let no = 1; no <= 30; no++) {
+      const day = dateForPuzzle(no);
+      for (const range of ['week', 'all'] as const) {
+        const rows = fillBoard([], day, range);
+        if (no < 3) expect(rows).toEqual([]);
+        else expect(rows.every((r) => r.games >= 3 && r.games <= Math.min(no, range === 'week' ? 7 : no))).toBe(true);
+      }
+      expect(fillBoard([], day, 'streaks').every((r) => r.score >= 1 && r.score <= no)).toBe(true);
+    }
+    // Today is puzzle No. 11: the all-time board tops out at 11 days.
+    expect(puzzleNumber('2026-11-11')).toBe(11);
+    expect(Math.max(...fillBoard([], '2026-11-11', 'all').map((r) => r.games))).toBeLessThanOrEqual(11);
   });
 
   it('sorts streaks longest first and keeps every real row', () => {

@@ -165,6 +165,8 @@
       <p class="sub">Couldn’t reach the leaderboard. Check your connection and <button class="link" onclick={() => load()}>try again</button>.</p>
     {:else if rows === null}
       <p class="sub">Loading…</p>
+    {:else if rows.length === 0}
+      <p class="sub">Nobody has played 3 days yet. This board fills up from the third puzzle.</p>
     {:else}
       <div class="table" in:fade={{ duration: 200 }}>
         <div class="head lbl" aria-hidden="true">

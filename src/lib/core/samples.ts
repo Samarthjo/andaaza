@@ -4,7 +4,12 @@
  * puzzle date, so everyone sees the same sample crowd on a given day.
  *
  * Percent claims ("closer than X% of players", "Top X%") never count samples.
+ *
+ * Sample players never claim more days than there have been puzzles: on puzzle No. 11 nobody
+ * has played more than 11 days, has an 11+ day streak, or has the 3 days the averages need
+ * before puzzle No. 3.
  */
+import { isDateKey, puzzleNumber } from './date';
 import { BINS } from './score';
 
 /** Samples fill each guess and score chart up to this many entries. */
@@ -139,18 +144,30 @@ export interface BoardEntry {
 }
 export type BoardRange = 'today' | 'week' | 'all' | 'streaks';
 
+/** Puzzles so far when the seed is a puzzle date, the most days anyone can have played. */
+function daysSoFar(seed: string): number {
+  return isDateKey(seed) ? Math.max(1, puzzleNumber(seed)) : Infinity;
+}
+
 /** `n` sample rows for one leaderboard tab. For streaks, `score` holds the streak in days. */
 export function sampleBoard(seed: string, range: BoardRange, n: number): BoardEntry[] {
   const r = seeded(`board:${range}:${seed}`);
+  const days = daysSoFar(seed);
+  // The 7-day and all-time averages need 3 days played: nobody qualifies before puzzle No. 3.
+  if ((range === 'week' || range === 'all') && days < 3) return [];
   const rows: BoardEntry[] = [];
   for (let i = 0; i < n; i++) {
     const nickname = sampleName(r);
     if (range === 'streaks') {
-      rows.push({ nickname, score: clamp(Math.round(Math.exp(1.1 + 0.75 * normal(r))), 1, 60), games: 0, sample: true });
+      // Redraw the rare long streaks that would start before puzzle No. 1.
+      let streak = Math.round(Math.exp(1.1 + 0.75 * normal(r)));
+      for (let tries = 0; streak > days && tries < 20; tries++) streak = Math.round(Math.exp(1.1 + 0.75 * normal(r)));
+      rows.push({ nickname, score: clamp(streak, 1, Math.min(60, days)), games: 0, sample: true });
       continue;
     }
-    const [mean, sd, minGames, maxGames] =
+    const [mean, sd, minGames, cap] =
       range === 'today' ? [0.82, 0.36, 1, 1] : range === 'week' ? [0.74, 0.22, 3, 7] : [0.78, 0.2, 3, 40];
+    const maxGames = Math.min(cap, days);
     const log = clamp(mean + sd * normal(r), 0.015, 3);
     rows.push({
       nickname,
