@@ -35,7 +35,12 @@
     played = dates.filter((k) => loadGame(k)?.completed).length;
     while (list.length % 7 !== 0 || list.length < 14) list.push({ key: null, no: 0, state: 'future', today: false });
     cells = list;
-    if (online) leaderboard('today', today).then((r) => (board = r ? fillBoard(r, today, 'today') : null));
+    if (!online) return;
+    // Today's top three stay live while the menu is open.
+    const loadBoard = () => leaderboard('today', today).then((r) => r && (board = fillBoard(r, today, 'today')));
+    loadBoard();
+    const timer = setInterval(() => document.visibilityState === 'visible' && loadBoard(), 10_000);
+    return () => clearInterval(timer);
   });
 
   const pct = $derived(total ? Math.round((played / total) * 100) : 0);

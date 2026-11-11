@@ -192,16 +192,15 @@ mode) are sent once on the next visit, so a player's own result always shows in
 the charts.
 
 While the game is new, sample players fill the gaps (`src/lib/core/samples.ts`): each
-guess and score chart is topped up to 100 entries and each leaderboard tab to 50 rows
+guess and score chart is topped up to 100 entries and each leaderboard tab to 15 rows
 with random names, seeded by date so everyone sees the same crowd and it reshuffles
 every day. Samples step aside as real players arrive, a small note says when they're
 showing, and "closer than X%" and "Top X%" only ever count real players. Set
 `CHART_TARGET` and `BOARD_TARGET` to 0 to turn them off.
 
-Test data never counts as real (`supabase/migrations/20261111170000_real_players.sql`).
-That covers every game and guess recorded before launch, and anything played later in
-a browser the owner tested with: one where a pre-launch test account (listed in
-`andaaza_test_accounts`) played.
+Games and guesses recorded before launch were testing and never count
+(`is_test`, `supabase/migrations/20261111170000_real_players.sql`), unless the player
+later names that game. Everything played since counts.
 
 ## Leaderboard names
 
@@ -211,9 +210,14 @@ browser, named by its latest daily game, so clearing the name takes it off the b
 from the next puzzle. A name added after finishing today's puzzle puts that game on
 today's board straight away.
 
-Accounts existed briefly before launch;
-`supabase/migrations/20261111180000_remove_accounts.sql` drops their tables. The users
-left under Supabase → Authentication → Users are the owner's test accounts.
+The board is live: an open leaderboard (and the menu's top three) checks for new
+players and names every 10 seconds, and rolls over to the new puzzle and a fresh set of
+sample players at midnight India time.
+
+Accounts existed briefly before launch. `supabase/migrations/20261111180000_named_players.sql`
+moves the leaderboard to names, and `20261111190000_drop_account_tables.sql` drops the
+account tables. The users left under Supabase → Authentication → Users were the owner's
+test accounts.
 
 ## Credits
 

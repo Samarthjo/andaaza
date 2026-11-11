@@ -1,29 +1,41 @@
--- No more accounts: Andaaza has no login. Anyone who sets a name joins the leaderboard, and a
--- player is one browser (its session id). A browser's name is the one on its latest daily game,
--- so clearing the name takes it off the board from the next puzzle.
+-- Names without accounts. Andaaza has no login: anyone who sets a name joins the leaderboard.
+-- A player is one browser (its session id), named by its latest daily game, so clearing the
+-- name takes it off the board from the next puzzle.
 --
--- This drops the account tables (profiles, synced games) and the sign-up trigger. The
--- andaaza_games.user_id column and andaaza_test_accounts stay: they mark the browsers the
--- owner tested with, which never count as real players (see 20261111170000_real_players.sql).
+-- Test data: games and guesses from before launch stay hidden (is_test, see
+-- 20261111170000_real_players.sql), but a test play that is sent again with a name (the player
+-- named themselves after playing) counts from then on. Browsers that once logged in to a test
+-- account are no longer hidden: accounts are gone, so everything played from now on counts.
 
-drop trigger if exists andaaza_on_auth_user_created on auth.users;
-drop function if exists public.andaaza_handle_new_user();
-drop table if exists public.andaaza_profiles;
-drop table if exists public.andaaza_user_games;
+create or replace view public.andaaza_real_games with (security_invoker = true) as
+  select g.* from public.andaaza_games g where not g.is_test;
 
--- Record a finished day. Sending it again (after the player adds a name) updates the name.
+create or replace view public.andaaza_real_answers with (security_invoker = true) as
+  select a.* from public.andaaza_answers a where not a.is_test;
+
+revoke all on public.andaaza_real_games, public.andaaza_real_answers from anon, authenticated;
+
+-- Record a finished day. Sending it again with a name (after the player adds one) updates the
+-- name, and a test play named this way becomes a real one.
 create or replace function public.andaaza_record_game(
   p_session text, p_date date, p_mode text, p_score double precision, p_nickname text
 ) returns void
 language plpgsql security definer set search_path = public as $$
+declare
+  v_name text := left(nullif(btrim(p_nickname), ''), 24);
 begin
   if p_date > (now() at time zone 'Asia/Kolkata')::date then
     raise exception 'future puzzle';
   end if;
   insert into andaaza_games (session, puzzle_date, mode, score, nickname)
-  values (p_session, p_date, p_mode, least(greatest(p_score, 1), 1000), left(nullif(btrim(p_nickname), ''), 24))
+  values (p_session, p_date, p_mode, least(greatest(p_score, 1), 1000), v_name)
   on conflict (session, puzzle_date) do update
-    set nickname = coalesce(excluded.nickname, andaaza_games.nickname);
+    set nickname = coalesce(excluded.nickname, andaaza_games.nickname),
+        is_test  = andaaza_games.is_test and excluded.nickname is null;
+  if v_name is not null then
+    update andaaza_answers set is_test = false
+    where session = p_session and puzzle_date = p_date and is_test;
+  end if;
 end $$;
 
 -- 'today': today's named daily scores. 'week' / 'all': geometric mean of a named player's daily

@@ -25,6 +25,8 @@ const fail = (msg) => {
 const bell = Array.from({ length: 21 }, (_, i) => Math.round(40 * Math.exp(-((i - 10) ** 2) / 18)) + 1);
 const scores = Array.from({ length: 21 }, (_, i) => Math.round(30 * Math.exp(-((i - 4) ** 2) / 10)));
 const writes = [];
+// Real players the stubbed leaderboard returns; the live-update check adds one while the page is open.
+const boardRows = [{ nickname: 'test-player', score: 1.31, games: 1 }];
 
 const browser = await chromium.launch({ proxy });
 const context = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: scale });
@@ -39,7 +41,7 @@ await context.route('**/rest/v1/rpc/**', async (route) => {
     return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([{ nickname: 'test-player', streak: 4 }]) });
   }
   if (fn.startsWith('andaaza_leaderboard')) {
-    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([{ nickname: 'test-player', score: 1.31, games: 1 }]) });
+    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(boardRows) });
   }
   writes.push(`${fn} ${route.request().postData() ?? ''}`);
   return route.fulfill({ status: 204, body: '' });
@@ -237,7 +239,7 @@ await page.waitForTimeout(400);
 const loginPage = await page.request.get(base + '/login');
 if (loginPage.ok() && (await loginPage.text()).includes('login-email')) fail('the /login page still exists');
 
-// Leaderboard: tabs, name banner, today's score spread, 50 rows (real players among sample ones)
+// Leaderboard: tabs, name banner, today's score spread, 15 rows (real players among sample ones), live updates
 await page.goto(base + '/leaderboard', { waitUntil: 'networkidle' });
 await page.locator('.table li').first().waitFor();
 if ((await page.getByRole('tab').count()) !== 4) fail('leaderboard should have 4 tabs');
@@ -251,11 +253,23 @@ named = writes.slice(mark).find((w) => w.startsWith('andaaza_record_game'));
 if (!named?.includes('"p_nickname":"Asha R"')) fail(`renamed game not sent: ${named}`);
 await page.locator('.table li').first().waitFor();
 if ((await page.locator('.spread .bar').count()) !== 8) fail('today’s score spread should have 8 bars');
-if ((await page.locator('.table li').count()) !== 50) fail(`leaderboard should list 50 rows, saw ${await page.locator('.table li').count()}`);
+if ((await page.locator('.table li').count()) !== 15) fail(`leaderboard should list 15 rows, saw ${await page.locator('.table li').count()}`);
 if (!(await page.locator('.table li', { hasText: 'test-player' }).count())) fail('real player missing from the board');
 if (!(await page.getByText('Sample players fill the board').isVisible())) fail('sample note missing');
+if (!(await page.locator('.live').isVisible())) fail('Live badge missing');
 await page.waitForTimeout(600);
 await shot('leaderboard');
+// Someone finishes with a name while the board is open: they appear without a reload.
+boardRows.push({ nickname: 'live-player', score: 1.05, games: 1 });
+const appeared = await page
+  .locator('.table li', { hasText: 'live-player' })
+  .waitFor({ timeout: 15000 })
+  .then(
+    () => true,
+    () => false
+  );
+if (!appeared) fail('a new player did not show up on the open board');
+if ((await page.locator('.table li').count()) !== 15) fail('live update changed the board size');
 await page.getByRole('tab', { name: 'Streaks' }).click();
 await page.locator('.table li', { hasText: 'test-player' }).waitFor();
 if (!(await page.locator('.head').innerText()).toLowerCase().includes('days')) fail('streaks tab should count days');

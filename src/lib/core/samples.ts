@@ -10,7 +10,7 @@ import { BINS } from './score';
 /** Samples fill each guess and score chart up to this many entries. */
 export const CHART_TARGET = 100;
 /** Samples fill each leaderboard tab up to this many rows. */
-export const BOARD_TARGET = 50;
+export const BOARD_TARGET = 15;
 
 /* ---------- seeded randomness ---------- */
 

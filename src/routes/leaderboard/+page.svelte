@@ -30,26 +30,50 @@
   const me = $derived(settings.value.nickname);
   const maxPct = $derived(spread ? Math.max(1, ...spread) : 1);
 
-  async function load() {
-    rows = null;
-    failed = false;
+  /** How often an open board checks for new players and names. */
+  const LIVE_MS = 10_000;
+  let seq = 0;
+  let ticks = 0;
+
+  /** Fetch the open tab. A quiet load (the live refresh) keeps the current rows up until new ones arrive. */
+  async function load(quiet = false) {
     const r = range;
-    if (r === 'streaks') {
-      const s = await streaks(today);
-      if (r !== range) return;
-      if (s === null) failed = true;
-      else rows = fillBoard(s.map((x) => ({ nickname: x.nickname, score: x.streak, games: 0 })), today, 'streaks');
-    } else {
-      const s = await leaderboard(r, today);
-      if (r !== range) return;
-      if (s === null) failed = true;
-      else rows = fillBoard(s, today, r);
+    const mine = ++seq;
+    if (!quiet) {
+      rows = null;
+      failed = false;
     }
+    const real: BoardEntry[] | null =
+      r === 'streaks'
+        ? ((await streaks(today))?.map((x) => ({ nickname: x.nickname, score: x.streak, games: 0 })) ?? null)
+        : await leaderboard(r, today);
+    if (mine !== seq) return; // a newer load (another tab, a new name) is on its way
+    if (real === null) {
+      if (!quiet) failed = true;
+      return;
+    }
+    rows = fillBoard(real, today, r);
+    failed = false;
   }
 
-  async function loadSpread() {
+  async function loadSpread(quiet = false) {
     const stats = await puzzleStats(today);
+    if (!stats && quiet && spread) return;
     spread = scoreSpread(fillCounts(stats?.scores ?? null, (n) => sampleScoreCounts(today, n)));
+  }
+
+  /** Live refresh while the page is on screen; rolls over to the new puzzle at midnight in India. */
+  function live() {
+    if (document.visibilityState !== 'visible') return;
+    const now = istDateKey();
+    if (now !== today) {
+      today = now;
+      load();
+      loadSpread();
+      return;
+    }
+    load(true);
+    if (++ticks % 3 === 0) loadSpread(true);
   }
 
   function pick(id: BoardRange) {
@@ -65,7 +89,7 @@
     editing = false;
     // Already played today? Put that game on the board under the new name before reloading it.
     if (name) await nameToday(name, today);
-    load();
+    load(true);
   }
 
   onMount(() => {
@@ -73,6 +97,12 @@
     if (!online) return;
     load();
     loadSpread();
+    const timer = setInterval(live, LIVE_MS);
+    document.addEventListener('visibilitychange', live);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', live);
+    };
   });
 </script>
 
@@ -80,7 +110,10 @@
 
 <section class="board">
   <h1>Leaderboard</h1>
-  <p class="sub">{tab.sub}</p>
+  <p class="sub">
+    {tab.sub}
+    {#if online}<span class="live" title="New players and names show up by themselves"><span class="pulse" aria-hidden="true"></span>Live</span>{/if}
+  </p>
 
   {#if !online}
     <p class="sub">The leaderboard isn’t switched on for this copy of Andaaza. Your own scores are on the <a href="{base}/stats">stats page</a>.</p>
@@ -129,7 +162,7 @@
     {/if}
 
     {#if failed}
-      <p class="sub">Couldn’t reach the leaderboard. Check your connection and <button class="link" onclick={load}>try again</button>.</p>
+      <p class="sub">Couldn’t reach the leaderboard. Check your connection and <button class="link" onclick={() => load()}>try again</button>.</p>
     {:else if rows === null}
       <p class="sub">Loading…</p>
     {:else}
@@ -174,6 +207,40 @@
     color: var(--ink-soft);
     font-size: 1.25rem;
     margin-top: -0.25rem;
+  }
+  .live {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-left: 0.5rem;
+    padding: 0.2rem 0.65rem;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--answer) 12%, transparent);
+    color: var(--answer);
+    font-family: var(--font-ui);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    vertical-align: 0.2em;
+  }
+  .pulse {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: currentColor;
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    50% {
+      opacity: 0.25;
+      transform: scale(0.7);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .pulse {
+      animation: none;
+    }
   }
   .tabs {
     display: flex;
@@ -292,6 +359,7 @@
   }
   .bar {
     height: max(6px, var(--h));
+    transition: height 0.5s var(--ease-out);
     border-radius: 8px;
     background: var(--card-q1);
     transform-origin: bottom;

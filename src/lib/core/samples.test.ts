@@ -42,7 +42,7 @@ describe('sample crowd', () => {
 });
 
 describe('sample leaderboard', () => {
-  it('fills to 50 rows with real players ranked among them', () => {
+  it('fills to 15 rows with real players ranked among them', () => {
     const real = [{ nickname: 'Asha', score: 1.2, games: 1 }];
     const rows = fillBoard(real, '2026-11-11', 'today');
     expect(rows).toHaveLength(BOARD_TARGET);
