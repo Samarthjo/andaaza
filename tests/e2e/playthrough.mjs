@@ -195,6 +195,15 @@ await page.getByRole('button', { name: 'Copy text' }).click();
 const clip = await page.evaluate(() => navigator.clipboard.readText());
 if (!/^Andaaza No\. \d+/.test(clip) || clip.split('\n').length < 5) fail(`bad share text: ${clip}`);
 console.log('share text:\n' + clip);
+// The results card links straight to the leaderboard, and the footer sits close to the content.
+const toBoard = page.locator('.share a', { hasText: 'Leaderboard' });
+if (!(await toBoard.isVisible()) || !(await toBoard.getAttribute('href'))?.endsWith('/leaderboard')) fail('results card has no Leaderboard button');
+const gap = await page.evaluate(() => {
+  const more = document.querySelector('.after .more')?.getBoundingClientRect();
+  const foot = document.querySelector('.foot a')?.getBoundingClientRect();
+  return more && foot ? foot.top - more.bottom : null;
+});
+if (gap === null || gap > 64) fail(`too much space above the footer: ${gap}px`);
 
 // Reload: intro offers results
 await page.goto(base + '/', { waitUntil: 'networkidle' });

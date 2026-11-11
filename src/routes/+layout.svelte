@@ -131,8 +131,8 @@
   }
   .foot {
     max-width: 64rem;
-    margin: 4rem auto 0;
-    padding: 1.5rem var(--gutter) 2.5rem;
+    margin: 1.5rem auto 0;
+    padding: 1rem var(--gutter) 1.75rem;
     display: flex;
     flex-wrap: wrap;
     justify-content: center;

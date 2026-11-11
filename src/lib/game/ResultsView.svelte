@@ -1,10 +1,12 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { fly } from 'svelte/transition';
+  import { base } from '$app/paths';
   import { formatFactor } from '$lib/core/number';
   import { dayScore, factorOf, rankLabel, scoreBin, scorePosition, sideOf, verdictFor } from '$lib/core/score';
   import type { Puzzle } from '$lib/data/puzzle';
   import { copyText, shareCard, shareText } from '$lib/share';
+  import { online } from '$lib/state/online';
   import CardHeader from './CardHeader.svelte';
   import CrowdChart from './CrowdChart.svelte';
 
@@ -98,11 +100,14 @@
     </ul>
   </div>
 
-  <div class="share">
-    <button class="dark" onclick={share}>Share card</button>
-    <button class="outline" onclick={copy}>Copy text</button>
+  <div class="actions">
+    <div class="share">
+      <button class="dark" onclick={share}>Share card</button>
+      <button class="outline" onclick={copy}>Copy text</button>
+      {#if online}<a class="outline" href="{base}/leaderboard">Leaderboard</a>{/if}
+    </div>
+    <p class="status" role="status">{status}</p>
   </div>
-  <p class="status" role="status">{status}</p>
 </div>
 
 <style>
@@ -227,7 +232,12 @@
     gap: 0.75rem;
     flex-wrap: wrap;
   }
-  .share button {
+  .share button,
+  .share a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
     min-height: 3rem;
     padding: 0 1.6rem;
     border-radius: 999px;
@@ -240,10 +250,12 @@
       transform 0.22s var(--ease-out),
       background-color 0.2s ease;
   }
-  .share button:hover {
+  .share button:hover,
+  .share a:hover {
     transform: translateY(-2px);
   }
-  .share button:active {
+  .share button:active,
+  .share a:active {
     transform: scale(0.97);
   }
   .dark {
@@ -256,10 +268,13 @@
     background: transparent;
     color: #1b1a2e;
   }
+  /* Takes no room until there is something to say (it stays in the page for screen readers). */
   .status {
-    min-height: 1.2em;
-    margin-top: -0.75rem;
+    margin: 0;
     font-size: 0.88rem;
     font-weight: 600;
+  }
+  .status:not(:empty) {
+    margin-top: 0.75rem;
   }
 </style>
