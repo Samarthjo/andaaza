@@ -51,6 +51,17 @@ describe('sample leaderboard', () => {
     expect(rows.every((r) => r.score >= 1 && r.nickname.length > 0)).toBe(true);
   });
 
+  it('reshuffles every tab and the score chart each day, the same for everyone', () => {
+    for (const range of ['today', 'week', 'all', 'streaks'] as const) {
+      const day1 = fillBoard([], '2026-11-11', range);
+      const day2 = fillBoard([], '2026-11-12', range);
+      expect(fillBoard([], '2026-11-11', range)).toEqual(day1);
+      expect(day2.map((r) => r.nickname)).not.toEqual(day1.map((r) => r.nickname));
+      expect(day2.map((r) => r.score)).not.toEqual(day1.map((r) => r.score));
+    }
+    expect(sampleScoreCounts('2026-11-12', CHART_TARGET)).not.toEqual(sampleScoreCounts('2026-11-11', CHART_TARGET));
+  });
+
   it('sorts streaks longest first and keeps every real row', () => {
     const real = Array.from({ length: 60 }, (_, i) => ({ nickname: `p${i}`, score: i + 1, games: 0 }));
     const rows = fillBoard(real, 'd', 'streaks');

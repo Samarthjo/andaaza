@@ -192,10 +192,17 @@ the charts.
 
 While the game is new, sample players fill the gaps (`src/lib/core/samples.ts`): each
 guess and score chart is topped up to 100 entries and each leaderboard tab to 50 rows
-with random names, seeded by date so everyone sees the same crowd. Samples step aside
-as real players arrive, a small note says when they're showing, and "closer than X%"
-and "Top X%" only ever count real players. Set `CHART_TARGET` and `BOARD_TARGET` to 0
-to turn them off.
+with random names, seeded by date so everyone sees the same crowd and it reshuffles
+every day. Samples step aside as real players arrive, a small note says when they're
+showing, and "closer than X%" and "Top X%" only ever count real players. Set
+`CHART_TARGET` and `BOARD_TARGET` to 0 to turn them off.
+
+Test data never counts as real (`supabase/migrations/20261111170000_real_players.sql`).
+That covers every game and guess recorded before launch, and every account that
+existed at launch (listed in `andaaza_test_accounts`). It also covers anything played
+later by those accounts, or in a browser where one of them has played. Delete a row
+from `andaaza_test_accounts` to count that account again, or insert a user id to mark
+another test account.
 
 ## Accounts
 
