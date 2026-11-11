@@ -28,7 +28,7 @@ const writes = [];
 
 const browser = await chromium.launch({ proxy });
 const context = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: scale });
-// Anything else on Supabase (auth settings, profiles, synced games) never reaches the real project either.
+// Anything else on Supabase never reaches the real project either.
 await context.route(/supabase\.co\//, (route) => route.fulfill({ status: 200, contentType: 'application/json', body: '{}' }));
 await context.route('**/rest/v1/rpc/**', async (route) => {
   const fn = route.request().url().split('/rpc/')[1];
@@ -41,7 +41,7 @@ await context.route('**/rest/v1/rpc/**', async (route) => {
   if (fn.startsWith('andaaza_leaderboard')) {
     return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([{ nickname: 'test-player', score: 1.31, games: 1 }]) });
   }
-  writes.push(fn);
+  writes.push(`${fn} ${route.request().postData() ?? ''}`);
   return route.fulfill({ status: 204, body: '' });
 });
 const page = await context.newPage();
@@ -208,32 +208,48 @@ await shot('menu');
 await page.getByRole('button', { name: 'Close menu' }).click();
 await page.waitForTimeout(400);
 
-// Profile panel
+// Profile panel: stats, colour themes and a leaderboard name, with no login anywhere.
 await page.getByRole('button', { name: 'You', exact: true }).click();
 await page.waitForTimeout(500);
 if (!(await page.getByText('Day streak').isVisible())) fail('profile panel missing streak');
 if ((await page.locator('.themes .theme').count()) !== 4) fail('profile panel should offer 4 themes');
-if (!(await page.getByRole('link', { name: 'Create account or log in' }).isVisible())) fail('guests get no login button');
+if (await page.locator('dialog[open]').getByText(/log ?in|account|sign ?in/i).count()) fail('login wording left in the You panel');
 await sheetFits('profile');
 // Side panels are full-height drawers from the right (bottom sheets failed on iPhone Safari).
 const you = await page.locator('dialog[open]').boundingBox();
 if (!you || you.y > 1 || you.height < 840 || Math.abs(you.x + you.width - 390) > 1) fail(`You panel is not a right-hand drawer: ${JSON.stringify(you)}`);
 await shot('profile');
-// Guests who pick a colour theme are asked to log in first; the page stays on Haldi.
+// Any colour theme applies straight away, for everyone.
 await page.locator('.themes .theme', { hasText: 'Neel' }).click();
-await page.waitForURL(/\/login\?next=/);
-await page.getByText('Log in to switch to Neel.').waitFor();
-if ((await page.evaluate(() => document.documentElement.dataset.palette)) !== 'haldi') fail('a locked theme applied for a guest');
-// Google only shows once it's switched on in Supabase (the stub says it isn't).
-if (await page.getByRole('button', { name: 'Continue with Google' }).count()) fail('Google button shown while Google login is off');
-await page.waitForTimeout(500);
-await shot('login');
+await page.waitForTimeout(300);
+if ((await page.evaluate(() => document.documentElement.dataset.palette)) !== 'neel') fail('Neel theme did not apply');
+if (page.url().includes('/login')) fail('a theme tap still goes to a login page');
+await page.locator('.themes .theme', { hasText: 'Haldi' }).click();
+// A name saved after today's puzzle puts that game on today's board straight away.
+let mark = writes.length;
+await page.locator('#nick').fill('Asha');
+await page.getByRole('button', { name: 'Save' }).click();
+await page.getByText('You’re on today’s leaderboard').waitFor();
+let named = writes.slice(mark).find((w) => w.startsWith('andaaza_record_game'));
+if (!named?.includes('"p_nickname":"Asha"')) fail(`today's game not sent again with the name: ${named}`);
+await page.getByRole('button', { name: 'Close', exact: true }).click();
+await page.waitForTimeout(400);
+const loginPage = await page.request.get(base + '/login');
+if (loginPage.ok() && (await loginPage.text()).includes('login-email')) fail('the /login page still exists');
 
-// Leaderboard: tabs, guest banner, today's score spread, 50 rows (real players among sample ones)
+// Leaderboard: tabs, name banner, today's score spread, 50 rows (real players among sample ones)
 await page.goto(base + '/leaderboard', { waitUntil: 'networkidle' });
 await page.locator('.table li').first().waitFor();
 if ((await page.getByRole('tab').count()) !== 4) fail('leaderboard should have 4 tabs');
-if (!/Log in to join the leaderboard/.test(await page.locator('.banner').innerText())) fail('guest banner missing');
+if (!/on the board as Asha/.test(await page.locator('.banner').innerText())) fail('name banner missing');
+mark = writes.length;
+await page.locator('.banner').getByRole('button', { name: 'Change name' }).click();
+await page.locator('.banner #nick').fill('Asha R');
+await page.locator('.banner').getByRole('button', { name: 'Save' }).click();
+await page.locator('.banner', { hasText: 'Asha R' }).waitFor();
+named = writes.slice(mark).find((w) => w.startsWith('andaaza_record_game'));
+if (!named?.includes('"p_nickname":"Asha R"')) fail(`renamed game not sent: ${named}`);
+await page.locator('.table li').first().waitFor();
 if ((await page.locator('.spread .bar').count()) !== 8) fail('today’s score spread should have 8 bars');
 if ((await page.locator('.table li').count()) !== 50) fail(`leaderboard should list 50 rows, saw ${await page.locator('.table li').count()}`);
 if (!(await page.locator('.table li', { hasText: 'test-player' }).count())) fail('real player missing from the board');

@@ -1,8 +1,7 @@
 import { dayScore, factorOf, guessBin } from '$lib/core/score';
 import { puzzleFor, type Puzzle } from '$lib/data/puzzle';
-import { accountsEnabled, online, recordAnswer, recordGame } from './online';
+import { online, recordAnswer, recordGame } from './online';
 import { allGames, loadGame, readJSON, saveGame, sessionId, type SavedGame } from './storage';
-import { pushGame } from './sync';
 
 /** Crowd writes still on the wire. Stats reads wait for them so a player always sees their own result counted. */
 const inflight = new Set<Promise<unknown>>();
@@ -15,15 +14,6 @@ function track<T>(p: Promise<T>): Promise<T> {
 export function recorded(): Promise<void> {
   return Promise.allSettled([...inflight]).then(() => undefined);
 }
-
-/** Set by the auth store so game changes can be mirrored for signed-in players. */
-let signedIn = false;
-export function setSignedIn(v: boolean) {
-  signedIn = v;
-}
-const mirror = (g: SavedGame) => {
-  if (accountsEnabled && signedIn) pushGame(g);
-};
 
 /** Load the saved game for a puzzle, or start a fresh one (not saved until the first guess). */
 export function openGame(puzzle: Puzzle, today: string): SavedGame {
@@ -49,7 +39,6 @@ export function lockGuess(puzzle: Puzzle, game: SavedGame, guess: number): Saved
   if (!q) return null;
   const next: SavedGame = { ...game, guesses: [...game.guesses, guess] };
   saveGame(next);
-  mirror(next);
   if (online) {
     track(
       recordAnswer({
@@ -72,7 +61,6 @@ export function finishGame(puzzle: Puzzle, game: SavedGame, nickname: string): S
   if (game.completed) return game;
   const done: SavedGame = { ...game, completed: true, completedAt: Date.now() };
   saveGame(done);
-  mirror(done);
   if (online && !done.reported) {
     track(
       recordGame({
@@ -91,6 +79,18 @@ export function finishGame(puzzle: Puzzle, game: SavedGame, nickname: string): S
 
 export function gameScore(game: SavedGame): number {
   return dayScore(game.guesses.map((g, i) => factorOf(g, game.answers[i])));
+}
+
+/**
+ * After a player saves a leaderboard name, send today's finished puzzle again with it, so they
+ * show on today's board right away instead of from their next puzzle. Resolves to whether there
+ * was a finished puzzle to send.
+ */
+export async function nameToday(nickname: string, today: string): Promise<boolean> {
+  const g = loadGame(today);
+  if (!online || !nickname || !g?.completed || g.mode !== 'daily') return false;
+  await track(recordGame({ session: sessionId(), dateKey: g.dateKey, mode: g.mode, score: gameScore(g), nickname }));
+  return true;
 }
 
 /**

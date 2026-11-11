@@ -6,8 +6,8 @@
   import { istDateKey } from '$lib/core/date';
   import { formatFactor } from '$lib/core/number';
   import { fillBoard, fillCounts, sampleScoreCounts, scoreSpread, SPREAD_LABELS, type BoardEntry, type BoardRange } from '$lib/core/samples';
-  import { auth } from '$lib/state/auth.svelte';
-  import { accountsEnabled, leaderboard, online, puzzleStats, streaks } from '$lib/state/online';
+  import { nameToday } from '$lib/state/game';
+  import { leaderboard, online, puzzleStats, streaks } from '$lib/state/online';
   import { settings } from '$lib/state/settings.svelte';
 
   const TABS: { id: BoardRange; label: string; sub: string }[] = [
@@ -27,7 +27,7 @@
 
   const tab = $derived(TABS.find((t) => t.id === range) ?? TABS[0]);
   const hasSamples = $derived(rows?.some((r) => r.sample) ?? false);
-  const me = $derived(auth.signedIn ? settings.value.nickname : '');
+  const me = $derived(settings.value.nickname);
   const maxPct = $derived(spread ? Math.max(1, ...spread) : 1);
 
   async function load() {
@@ -58,10 +58,13 @@
     load();
   }
 
-  function saveName(e: SubmitEvent) {
+  async function saveName(e: SubmitEvent) {
     e.preventDefault();
-    settings.update({ nickname: nick.trim().slice(0, 24) });
+    const name = nick.trim().slice(0, 24);
+    settings.update({ nickname: name });
     editing = false;
+    // Already played today? Put that game on the board under the new name before reloading it.
+    if (name) await nameToday(name, today);
     load();
   }
 
@@ -88,29 +91,22 @@
       {/each}
     </div>
 
-    {#if accountsEnabled && !auth.signedIn}
-      <div class="banner">
-        <p>Log in to join the leaderboard.</p>
-        <a class="yellow" href="{base}/login?next=%2Fleaderboard">Log in</a>
-      </div>
-    {:else if auth.signedIn || !accountsEnabled}
-      <div class="banner">
-        {#if editing}
-          <form class="namebox" onsubmit={saveName}>
-            <label class="visually-hidden" for="nick">Your name on the board</label>
-            <input id="nick" bind:value={nick} maxlength="24" placeholder="Leave blank to stay off it" />
-            <button class="yellow" type="submit">Save</button>
-          </form>
-        {:else}
-          <p>
-            {#if settings.value.nickname}You’re on the board as <strong>{settings.value.nickname}</strong>.{:else}Add a name to join the leaderboard.{/if}
-          </p>
-          <button class="yellow" onclick={() => ((nick = settings.value.nickname), (editing = true))}>
-            {settings.value.nickname ? 'Change name' : 'Add name'}
-          </button>
-        {/if}
-      </div>
-    {/if}
+    <div class="banner">
+      {#if editing}
+        <form class="namebox" onsubmit={saveName}>
+          <label class="visually-hidden" for="nick">Your name on the board</label>
+          <input id="nick" bind:value={nick} maxlength="24" placeholder="Leave blank to stay off it" />
+          <button class="yellow" type="submit">Save</button>
+        </form>
+      {:else}
+        <p>
+          {#if settings.value.nickname}You’re on the board as <strong>{settings.value.nickname}</strong>.{:else}Add a name to join the leaderboard.{/if}
+        </p>
+        <button class="yellow" onclick={() => ((nick = settings.value.nickname), (editing = true))}>
+          {settings.value.nickname ? 'Change name' : 'Add name'}
+        </button>
+      {/if}
+    </div>
 
     {#if range === 'today' && spread}
       <figure class="spread" in:fade={{ duration: 200 }}>

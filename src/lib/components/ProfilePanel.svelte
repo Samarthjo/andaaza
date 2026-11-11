@@ -1,13 +1,11 @@
 <script lang="ts">
   import { base } from '$app/paths';
-  import { goto } from '$app/navigation';
-  import { page } from '$app/state';
   import { istDateKey } from '$lib/core/date';
   import { formatFactor } from '$lib/core/number';
   import { computeStats, type PlayerStats } from '$lib/core/stats';
-  import { auth } from '$lib/state/auth.svelte';
-  import { accountsEnabled, online } from '$lib/state/online';
-  import { PALETTES, settings, type Palette } from '$lib/state/settings.svelte';
+  import { nameToday } from '$lib/state/game';
+  import { online } from '$lib/state/online';
+  import { PALETTES, settings } from '$lib/state/settings.svelte';
   import { allGames } from '$lib/state/storage';
   import Icon from './Icon.svelte';
   import Sheet from './Sheet.svelte';
@@ -15,29 +13,28 @@
   let { open = $bindable(false) }: { open: boolean } = $props();
   let stats = $state<PlayerStats | null>(null);
   let nick = $state('');
-  let savedNick = $state(false);
+  let saved = $state('');
 
   $effect(() => {
     if (!open) return;
     stats = computeStats(allGames(), istDateKey());
     nick = settings.value.nickname;
-    savedNick = false;
+    saved = '';
   });
 
   const close = () => (open = false);
-  // After logging in, people land back on the page they were on.
-  const here = $derived(page.url.pathname.slice(base.length) || '/');
-  const loginHref = $derived(`${base}/login?next=${encodeURIComponent(here)}`);
 
-  function pick(id: Palette) {
-    if (settings.unlocked) {
-      settings.update({ palette: id });
+  async function saveName(e: SubmitEvent) {
+    e.preventDefault();
+    const name = nick.trim().slice(0, 24);
+    settings.update({ nickname: name });
+    if (!name) {
+      saved = 'Saved. You stay off the leaderboard from your next puzzle.';
       return;
     }
-    if (id === 'haldi') return;
-    auth.want(id);
-    close();
-    goto(loginHref);
+    saved = 'Saved.';
+    if (await nameToday(name, istDateKey())) saved = 'Saved. You’re on today’s leaderboard.';
+    else saved = 'Saved. It shows from your next finished puzzle.';
   }
 </script>
 
@@ -45,24 +42,9 @@
   <div class="panel">
     <header>
       <span class="avatar" aria-hidden="true"><Icon name="user" size={24} /></span>
-      <h2 id="you-title">{auth.signedIn && auth.name ? auth.name : 'You'}</h2>
+      <h2 id="you-title">{settings.value.nickname || 'You'}</h2>
       <button class="icon-btn close" onclick={close} aria-label="Close"><Icon name="x" size={20} /></button>
     </header>
-
-    {#if accountsEnabled}
-      {#if auth.signedIn}
-        <div class="account">
-          <p class="pitch">Logged in as <strong>{auth.email}</strong>. Your theme and puzzles follow you to every device.</p>
-          <button class="link" onclick={() => auth.signOut()}>Log out</button>
-        </div>
-      {:else}
-        <div class="account">
-          <p class="pitch">An account unlocks colour themes, keeps your puzzles on every device and puts you on the leaderboard.</p>
-          <a class="dark-pill" href={loginHref} onclick={close}>Create account or log in</a>
-        </div>
-      {/if}
-      <hr />
-    {/if}
 
     <section aria-labelledby="stats-h">
       <div class="sechead">
@@ -82,39 +64,28 @@
     <section aria-labelledby="theme-h">
       <div class="sechead">
         <h3 id="theme-h" class="lbl">Theme</h3>
-        {#if !settings.unlocked}
-          <a class="link lockline" href={loginHref} onclick={close}><Icon name="lock" size={18} /> Log in to unlock</a>
-        {/if}
       </div>
       <div class="themes">
         {#each PALETTES as p (p.id)}
-          {@const locked = !settings.unlocked && p.id !== 'haldi'}
-          <button class="theme" class:is-locked={locked} aria-pressed={settings.activePalette === p.id} onclick={() => pick(p.id)}>
+          <button class="theme" aria-pressed={settings.value.palette === p.id} onclick={() => settings.update({ palette: p.id })}>
             <span class="dots" aria-hidden="true">
               {#each p.swatch as c (c)}<span style="background:{c}"></span>{/each}
             </span>
-            {p.name}{#if locked}<span class="visually-hidden"> (locked)</span>{/if}
+            {p.name}
           </button>
         {/each}
       </div>
     </section>
 
-    {#if online && (!accountsEnabled || auth.signedIn)}
+    {#if online}
       <hr />
-      <form
-        class="name"
-        onsubmit={(e) => {
-          e.preventDefault();
-          settings.update({ nickname: nick.trim().slice(0, 24) });
-          savedNick = true;
-        }}
-      >
+      <form class="name" onsubmit={saveName}>
         <label for="nick">Name on the leaderboard</label>
         <div class="row">
-          <input id="nick" bind:value={nick} maxlength="24" placeholder="Leave blank to stay off it" oninput={() => (savedNick = false)} />
+          <input id="nick" bind:value={nick} maxlength="24" placeholder="Leave blank to stay off it" oninput={() => (saved = '')} />
           <button class="dark-pill" type="submit">Save</button>
         </div>
-        <p class="small" role="status">{savedNick ? 'Saved. It shows from your next finished puzzle.' : ''}</p>
+        <p class="small" role="status">{saved}</p>
       </form>
     {/if}
   </div>
@@ -150,19 +121,6 @@
   }
   .close {
     margin-left: auto;
-  }
-  .account {
-    display: grid;
-    gap: 0.9rem;
-    justify-items: start;
-  }
-  .pitch {
-    font-size: 1.05rem;
-    line-height: 1.55;
-    color: var(--ink-soft);
-  }
-  .pitch strong {
-    color: var(--ink);
   }
   .dark-pill {
     display: inline-flex;
@@ -220,18 +178,6 @@
     font-size: var(--t-xs);
     color: var(--ink-soft);
   }
-  .link {
-    border: none;
-    background: none;
-    padding: 0;
-    color: var(--answer);
-    font-weight: 700;
-    text-decoration: none;
-    cursor: pointer;
-  }
-  .link:hover {
-    text-decoration: underline;
-  }
   hr {
     border: none;
     border-top: 1px solid var(--rule);
@@ -258,12 +204,6 @@
   }
   .sechead a:hover {
     text-decoration: underline;
-  }
-  .sechead .lockline {
-    display: inline-flex;
-    gap: 0.35rem;
-    align-items: center;
-    color: var(--ink-soft);
   }
   .tiles {
     margin: 0;
@@ -318,9 +258,6 @@
   .theme[aria-pressed='true'] {
     border-color: var(--ink-soft);
     background: var(--surface);
-  }
-  .theme.is-locked {
-    opacity: 0.55;
   }
   .dots {
     display: inline-flex;

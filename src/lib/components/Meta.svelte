@@ -4,7 +4,7 @@
   import { SITE_URL } from '$lib/site';
 
   let { title, description }: { title: string; description: string } = $props();
-  // The route id is the path without the site's base folder, e.g. "/login".
+  // The route id is the path without the site's base folder, e.g. "/about".
   const url = $derived(SITE_URL + (page.route.id ?? '/'));
 </script>
 

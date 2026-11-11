@@ -9,25 +9,12 @@ const URL_BASE = (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.repl
 const ANON_KEY = (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined) ?? '';
 
 export const online = Boolean(URL_BASE && ANON_KEY);
-/** Sign-in, theme unlocks and cross-device sync (needs Supabase Auth URLs configured). */
-export const accountsEnabled = online && import.meta.env.VITE_ACCOUNTS === '1';
-export const SUPABASE_URL = URL_BASE;
-export const SUPABASE_KEY = ANON_KEY;
-
-/** Access token and id of the signed-in player, set by the auth store. Null for guests. */
-let accessToken: string | null = null;
-let userId: string | null = null;
-export function setAuth(token: string | null, id: string | null) {
-  accessToken = token;
-  userId = id;
-}
 
 function headers(): Record<string, string> {
-  const bearer = accessToken ?? (ANON_KEY.startsWith('eyJ') ? ANON_KEY : null);
   return {
     apikey: ANON_KEY,
-    // Legacy anon keys and user sessions are JWTs and go in Authorization; sb_publishable_ keys must not.
-    ...(bearer ? { Authorization: `Bearer ${bearer}` } : {}),
+    // Legacy anon keys are JWTs and also go in Authorization; sb_publishable_ keys must not.
+    ...(ANON_KEY.startsWith('eyJ') ? { Authorization: `Bearer ${ANON_KEY}` } : {}),
     'Content-Type': 'application/json'
   };
 }
@@ -55,55 +42,6 @@ async function request<T>(path: string, init: RequestInit, timeoutMs = 6000): Pr
 
 function rpc<T>(fn: string, args: Record<string, unknown>, timeoutMs = 6000): Promise<T | null> {
   return request<T>(`/rest/v1/rpc/${fn}`, { method: 'POST', body: JSON.stringify(args) }, timeoutMs);
-}
-
-/** Signed-in only: this player's synced games. */
-export function fetchUserGames() {
-  return request<{ puzzle_date: string; game: unknown }[]>('/rest/v1/andaaza_user_games?select=puzzle_date,game', {
-    method: 'GET'
-  });
-}
-
-/** Signed-in only: save or update synced games. */
-export function upsertUserGames(rows: { puzzle_date: string; game: unknown }[]) {
-  if (!rows.length || !userId) return Promise.resolve(rows.length ? null : {});
-  const now = new Date().toISOString();
-  return request('/rest/v1/andaaza_user_games', {
-    method: 'POST',
-    headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
-    body: JSON.stringify(rows.map((r) => ({ user_id: userId, ...r, updated_at: now })))
-  });
-}
-
-/** A signed-in player's profile row (andaaza_profiles). */
-export interface Profile {
-  name: string | null;
-  palette: string | null;
-  theme: string | null;
-  number_style: string | null;
-}
-
-/** Signed-in only: this player's profile, or null when it can't be read. */
-export async function fetchProfile(): Promise<Profile | null> {
-  const rows = await request<Profile[]>('/rest/v1/andaaza_profiles?select=name,palette,theme,number_style', { method: 'GET' });
-  if (!Array.isArray(rows)) return null;
-  return rows[0] ?? { name: null, palette: null, theme: null, number_style: null };
-}
-
-/** Signed-in only: create or update fields of this player's profile. */
-export function saveProfile(patch: Partial<Profile>) {
-  if (!userId) return Promise.resolve(null);
-  return request('/rest/v1/andaaza_profiles', {
-    method: 'POST',
-    headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
-    body: JSON.stringify({ user_id: userId, ...patch, updated_at: new Date().toISOString() })
-  });
-}
-
-/** Which sign-in methods the Supabase project has switched on (public endpoint). */
-export async function authProviders(): Promise<{ email: boolean; google: boolean }> {
-  const s = await request<{ external?: Record<string, boolean> }>('/auth/v1/settings', { method: 'GET' });
-  return { email: s?.external?.email !== false, google: s?.external?.google === true };
 }
 
 export function recordAnswer(a: {
@@ -166,7 +104,7 @@ export async function leaderboard(range: 'today' | 'week' | 'all', today: string
   return r === null ? null : Array.isArray(r) ? r : [];
 }
 
-/** Current daily streaks of signed-in players, longest first. */
+/** Current daily streaks of named players, longest first. */
 export async function streaks(today: string): Promise<{ nickname: string; streak: number }[] | null> {
   const r = await rpc<{ nickname: string; streak: number }[]>('andaaza_streaks', { p_today: today });
   return r === null ? null : Array.isArray(r) ? r : [];

@@ -1,7 +1,6 @@
 <script lang="ts">
   import '../app.css';
   import { onMount } from 'svelte';
-  import { fly } from 'svelte/transition';
   import { beforeNavigate } from '$app/navigation';
   import { base } from '$app/paths';
   import { page, updated } from '$app/state';
@@ -9,8 +8,7 @@
   import MenuPanel from '$lib/components/MenuPanel.svelte';
   import ProfilePanel from '$lib/components/ProfilePanel.svelte';
   import SettingsDialog from '$lib/components/SettingsDialog.svelte';
-  import { auth } from '$lib/state/auth.svelte';
-  import { reportPending, setSignedIn } from '$lib/state/game';
+  import { reportPending } from '$lib/state/game';
   import { online } from '$lib/state/online';
   import { settings } from '$lib/state/settings.svelte';
   import { PREVIEW_IMAGE } from '$lib/site';
@@ -22,11 +20,6 @@
 
   onMount(() => {
     settings.load();
-    auth.onChange((signedIn) => {
-      settings.setUnlocked(signedIn);
-      setSignedIn(signedIn);
-    });
-    auth.init();
     // Finished games that never reached the crowd charts (played offline or before online mode) get sent once.
     reportPending();
     // Coming back to a tab left open (often overnight): check for a new deploy straight away.
@@ -40,13 +33,6 @@
   // After a new deploy, the next tap inside the app loads the new version instead of old code.
   beforeNavigate(({ willUnload, to }) => {
     if (updated.current && !willUnload && to?.url) location.href = to.url.href;
-  });
-
-  // The welcome note after logging in fades on its own.
-  $effect(() => {
-    if (!auth.notice) return;
-    const t = setTimeout(() => (auth.notice = ''), 5000);
-    return () => clearTimeout(t);
   });
 
   // Link previews (X, WhatsApp, LinkedIn) need an absolute image URL at build time.
@@ -100,9 +86,6 @@
   {#if online}<a href="{base}/leaderboard">Leaderboard</a>{/if}
 </footer>
 
-{#if auth.notice}
-  <div class="toast" role="status" transition:fly={{ y: 24, duration: 300 }}>{auth.notice}</div>
-{/if}
 
 <MenuPanel bind:open={menuOpen} />
 <SettingsDialog bind:open={settingsOpen} />
@@ -145,21 +128,6 @@
     margin: 0 auto;
     padding: 4.4rem var(--gutter) 0;
     min-height: 70dvh;
-  }
-  .toast {
-    position: fixed;
-    left: 50%;
-    bottom: max(1.25rem, env(safe-area-inset-bottom));
-    z-index: calc(var(--z-header) + 2);
-    transform: translateX(-50%);
-    width: max-content;
-    max-width: calc(100vw - 2rem);
-    padding: 0.85rem 1.4rem;
-    border-radius: 999px;
-    background: #1b1a2e;
-    color: var(--haldi);
-    font-weight: 700;
-    box-shadow: 0 18px 40px -16px rgb(0 0 0 / 0.5);
   }
   .foot {
     max-width: 64rem;

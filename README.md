@@ -97,17 +97,17 @@ each, no Googling.
   </tr>
   <tr>
     <td align="center" valign="top">
-      <img src="screenshots/profile-panel.png" width="240" alt="You panel with played, day streak, average and best tiles, and colour themes locked until you log in"><br>
+      <img src="screenshots/profile-panel.png" width="240" alt="You panel with played, day streak, average and best tiles, four colour themes and a box for your leaderboard name"><br>
       <b>You</b><br>
-      <sub>Your stats, and colour themes that unlock with a free account.</sub>
+      <sub>Your stats, four colour themes and your name on the leaderboard. No login.</sub>
     </td>
     <td align="center" valign="top">
-      <img src="screenshots/login.png" width="240" alt="Login page asking for a name and email, with a note that you never need an account to play"><br>
-      <b>Log in</b><br>
-      <sub>Name and email, then a one-time link. Your theme and streak follow you to every device.</sub>
+      <img src="screenshots/menu.png" width="240" alt="Menu with the archive of past puzzles and today's top three on the leaderboard"><br>
+      <b>Menu</b><br>
+      <sub>Every past puzzle, today's top three, and a way to send in a question.</sub>
     </td>
     <td align="center" valign="top">
-      <img src="screenshots/leaderboard.png" width="240" alt="Leaderboard with Today, 7 days, All time and Streaks tabs, a login banner, today's score spread and the ranked list"><br>
+      <img src="screenshots/leaderboard.png" width="240" alt="Leaderboard with Today, 7 days, All time and Streaks tabs, your name, today's score spread and the ranked list"><br>
       <b>Leaderboard</b><br>
       <sub>Today, the last 7 days, all time and streaks, with the day's score spread.</sub>
     </td>
@@ -122,7 +122,7 @@ On a laptop:
 </p>
 
 <sub>Screenshots come from `npm run test:e2e`, which fills the crowd charts and
-leaderboard with sample data. More (menu, how to play, dark mode, FAQ, laptop home page) in
+leaderboard with sample data. More (how to play, dark mode, FAQ, laptop home page) in
 [`screenshots/`](screenshots/).</sub>
 
 ### Scoring
@@ -145,7 +145,7 @@ leaderboard with sample data. More (menu, how to play, dark mode, FAQ, laptop ho
 | Game cards (intro, question, reveal, results, charts) | `src/lib/game/` |
 | Panels, calculator, sheets, icons | `src/lib/components/` |
 | Local persistence (`andaaza:v1:*` in localStorage) | `src/lib/state/storage.ts` |
-| Online mode, accounts and sync | `src/lib/state/`, `supabase/migrations/` |
+| Online mode (crowd charts, leaderboard) | `src/lib/state/online.ts`, `supabase/migrations/` |
 
 `LAUNCH_DATE` in `src/lib/core/date.ts` sets puzzle No. 1. After the 16
 hand-curated days run out, a deterministic seeded rotation replays earlier
@@ -175,9 +175,10 @@ Supabase project (`andaaza`, ref `pqvppabcdbenzrlbxzkw`, Mumbai region).
 
 - `.env.production` holds the public project URL and **publishable** key. Both are
   meant to be public; Vercel and `npm run build:pages` pick them up automatically.
-- Tables are locked behind RLS with no policies. Browsers can only call the five
+- Tables are locked behind RLS with no policies. Browsers can only call the six
   validated `andaaza_*` functions in `supabase/migrations/`, which store anonymous
-  guesses (random session id, no names or emails unless a player sets a nickname).
+  guesses (a random id per browser, and a name only if the player sets one for the
+  leaderboard).
 - Histograms use 21 log-scale bins: guesses from ÷10 to ×10 of the answer, day
   scores from 1× to 1,000×.
 - `npm run test:e2e` intercepts every Supabase call with canned data, so tests never
@@ -198,42 +199,21 @@ showing, and "closer than X%" and "Top X%" only ever count real players. Set
 `CHART_TARGET` and `BOARD_TARGET` to 0 to turn them off.
 
 Test data never counts as real (`supabase/migrations/20261111170000_real_players.sql`).
-That covers every game and guess recorded before launch, and every account that
-existed at launch (listed in `andaaza_test_accounts`). It also covers anything played
-later by those accounts, or in a browser where one of them has played. Delete a row
-from `andaaza_test_accounts` to count that account again, or insert a user id to mark
-another test account.
+That covers every game and guess recorded before launch, and anything played later in
+a browser the owner tested with: one where a pre-launch test account (listed in
+`andaaza_test_accounts`) played.
 
-## Accounts
+## Leaderboard names
 
-Playing never needs an account. Colour themes do: a guest who taps a theme goes to
-`/login`, enters a name and email (or uses Google once it's switched on), and gets a
-one-time link. Opening it logs them in, applies the theme they picked and unlocks the
-rest. Signed-in players also get their games, theme, light/dark mode and number style
-on every device, and their name on the leaderboard.
+There are no accounts and no login. Anyone can pick a colour theme, and anyone who adds
+a name (in the You panel or on the leaderboard) joins the leaderboard. A player is one
+browser, named by its latest daily game, so clearing the name takes it off the board
+from the next puzzle. A name added after finishing today's puzzle puts that game on
+today's board straight away.
 
-- `supabase/migrations/20261110000000_accounts.sql` (applied): `andaaza_profiles`
-  (name, theme, mode, number style) and `andaaza_user_games`, both readable and
-  writable only by their owner (row-level security); a trigger that creates a
-  profile with the sign-up name; a leaderboard limited to signed-in players.
-- Names and emails: Supabase → Authentication → Users. Names and themes:
-  Table Editor → `andaaza_profiles`.
-- Email delivery needs custom SMTP (Authentication → Emails). Supabase's built-in
-  sender only reaches the project's own team.
-- The login screen also takes the 6-digit code from the email, for links opened on
-  another device. Add `{{ .Token }}` to the "Confirm signup" and "Magic Link"
-  templates (Authentication → Emails → Templates) so the code is in the email.
-- Opening a login link a second time no longer logs the player out; the site says
-  the link was already used.
-- Google: create an OAuth client in Google Cloud (redirect URI
-  `https://pqvppabcdbenzrlbxzkw.supabase.co/auth/v1/callback`) and paste its ID and
-  secret into Authentication → Sign In / Providers → Google. The "Continue with
-  Google" button on `/login` appears by itself once it's on.
-- Builds without `VITE_ACCOUNTS=1` hide all of this and leave themes open to everyone.
-
-`node tests/e2e/accounts.mjs` runs the whole flow (locked theme, login form, email
-request, coming back signed in, profile saved and restored, logging out) against
-stubbed Supabase calls.
+Accounts existed briefly before launch;
+`supabase/migrations/20261111180000_remove_accounts.sql` drops their tables. The users
+left under Supabase → Authentication → Users are the owner's test accounts.
 
 ## Credits
 
