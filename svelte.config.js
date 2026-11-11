@@ -10,7 +10,10 @@ const config = {
     adapter: adapter(process.env.VERCEL ? undefined : { fallback: '404.html' }),
     // GitHub Pages project sites live under /<repo>; the deploy workflow sets BASE_PATH.
     paths: { base: process.env.BASE_PATH ?? '' },
-    prerender: { entries: ['*'] }
+    prerender: { entries: ['*'] },
+    // A daily game lives in long-open tabs: notice new deploys so the next tap loads them
+    // (see beforeNavigate in +layout.svelte) instead of running yesterday's code.
+    version: { pollInterval: 5 * 60 * 1000 }
   }
 };
 

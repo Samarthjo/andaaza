@@ -343,6 +343,25 @@ for (const p of ['/', '/play', '/archive', '/stats', '/about', '/submit']) {
   if (over > 0) fail(`horizontal overflow ${over}px on ${p} at 320px`);
 }
 
+// A tab left open across a deploy loads the new version on the next tap inside the app.
+await page.setViewportSize({ width: 390, height: 844 });
+await page.goto(base + '/', { waitUntil: 'networkidle' });
+await page.evaluate(() => (window.__oldTab = true));
+await page.route('**/_app/version.json', (route) =>
+  route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ version: 'next-deploy' }) })
+);
+await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+await page.waitForTimeout(500);
+await page.evaluate(() => document.querySelector('a[href$="about"]').click());
+const reloaded = await page
+  .waitForFunction(() => location.pathname.endsWith('/about') && window.__oldTab !== true, null, { timeout: 5000 })
+  .then(
+    () => true,
+    () => false
+  );
+if (!reloaded) fail('an open tab kept running old code after a new deploy');
+await page.unroute('**/_app/version.json');
+
 if (errors.length) fail('browser errors:\n' + errors.join('\n'));
 await browser.close();
 console.log(process.exitCode ? 'E2E FAILED' : 'E2E PASSED');

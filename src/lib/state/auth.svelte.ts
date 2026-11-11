@@ -32,6 +32,9 @@ function friendly(error: AuthError): string {
   if (code === 'over_email_send_rate_limit' || error.status === 429)
     return 'Too many login emails right now. Try again in a few minutes.';
   if (code === 'email_address_invalid' || code === 'validation_failed') return 'That email address doesn’t look right.';
+  // The mail server refused (e.g. bad SMTP settings). Players can't fix that, so don't show the raw error.
+  if (/error sending/i.test(error.message)) return 'We couldn’t send the login email just now. Try again in a few minutes.';
+  if ((error.status ?? 0) >= 500) return 'Something went wrong on our side. Try again in a few minutes.';
   return error.message || 'Something went wrong. Try again.';
 }
 

@@ -2,8 +2,9 @@
   import '../app.css';
   import { onMount } from 'svelte';
   import { fly } from 'svelte/transition';
+  import { beforeNavigate } from '$app/navigation';
   import { base } from '$app/paths';
-  import { page } from '$app/state';
+  import { page, updated } from '$app/state';
   import Icon from '$lib/components/Icon.svelte';
   import MenuPanel from '$lib/components/MenuPanel.svelte';
   import ProfilePanel from '$lib/components/ProfilePanel.svelte';
@@ -28,6 +29,17 @@
     auth.init();
     // Finished games that never reached the crowd charts (played offline or before online mode) get sent once.
     reportPending();
+    // Coming back to a tab left open (often overnight): check for a new deploy straight away.
+    const recheck = () => {
+      if (document.visibilityState === 'visible') updated.check().catch(() => {});
+    };
+    document.addEventListener('visibilitychange', recheck);
+    return () => document.removeEventListener('visibilitychange', recheck);
+  });
+
+  // After a new deploy, the next tap inside the app loads the new version instead of old code.
+  beforeNavigate(({ willUnload, to }) => {
+    if (updated.current && !willUnload && to?.url) location.href = to.url.href;
   });
 
   // The welcome note after logging in fades on its own.

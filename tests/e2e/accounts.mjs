@@ -40,6 +40,7 @@ const magicLink = `#access_token=${token}&expires_in=3600&expires_at=${now + 360
 let profile = { name: 'Asha', palette: null, theme: null, number_style: null };
 const otp = [];
 const profileWrites = [];
+let otpFailures = 0; // > 0: the mail server refuses the next login emails, as with bad SMTP settings
 
 const browser = await chromium.launch({ proxy });
 const context = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: scale });
@@ -49,6 +50,10 @@ await context.route(/supabase\.co\//, async (route) => {
   const json = (status, body) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) });
   if (url.includes('/auth/v1/settings')) return json(200, { external: { email: true, google: true } });
   if (url.includes('/auth/v1/otp')) {
+    if (otpFailures > 0) {
+      otpFailures -= 1;
+      return json(500, { code: 500, error_code: 'unexpected_failure', msg: 'Error sending magic link email' });
+    }
     otp.push({ url, body: JSON.parse(req.postData() || '{}') });
     return json(200, {});
   }
@@ -111,6 +116,10 @@ await page.getByRole('button', { name: 'Continue with email' }).click();
 if (!(await page.getByText('doesn’t look right').isVisible())) fail('bad-email error not shown');
 if (otp.length) fail('sent a login email for invalid input');
 await page.locator('#login-email').fill('player@example.com');
+otpFailures = 1;
+await page.getByRole('button', { name: 'Continue with email' }).click();
+await page.getByText('We couldn’t send the login email just now').waitFor();
+if (await page.getByText('Error sending magic link email').count()) fail('raw mail-server error shown to the player');
 await page.getByRole('button', { name: 'Continue with email' }).click();
 await page.getByText('Check your inbox').waitFor();
 const sent = otp[0];
