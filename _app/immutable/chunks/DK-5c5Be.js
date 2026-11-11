@@ -1,0 +1,1 @@
+import{s as r,u as e,p as t}from"./DspGr0ZO.js";const u={get error(){return t.error},get route(){return t.route},get status(){return t.status},get url(){return t.url}},s={get current(){return e.current},check:()=>r.updated.check()},o=u,n=s;export{o as p,n as u};

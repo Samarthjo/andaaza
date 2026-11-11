@@ -119,7 +119,7 @@ const HANDLES = [
   'chai_and_maths', 'mumbai_local_fan', 'desi_estimator', 'lakh_crore_guy', 'jugaad_king', 'dosa_data',
   'biryani_bandit', 'cricket_crazy', 'pune_pundit', 'jaipur_jalebi', 'hyd_nawab', 'goa_vibes', 'indore_poha',
   'kolkata_rosogolla', 'delhi_dilwala', 'chennai_filter_coffee', 'bengaluru_traffic', 'lucknow_tehzeeb',
-  'mota_hisab', 'tukka_master', 'anumaan_ji', 'guesstimate_wala', 'kochi_kappa', 'surat_diamond'
+  'mota_hisab', 'andaaza_master', 'anumaan_ji', 'guesstimate_wala', 'kochi_kappa', 'surat_diamond'
 ];
 
 /** A random player name: a first name, a name with digits, or a handle. Repeats are fine. */
