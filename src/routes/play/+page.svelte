@@ -1,11 +1,9 @@
 <script lang="ts">
+  import Meta from '$lib/components/Meta.svelte';
   import Game from '$lib/game/Game.svelte';
 </script>
 
-<svelte:head>
-  <title>Play Andaaza</title>
-  <meta name="description" content="Three questions about India, one guess each. How close can you get?" />
-</svelte:head>
+<Meta title="Play today’s Andaaza" description="Three questions about India, one guess each. How close can you get?" />
 
 <div class="game">
   <Game start="auto" />

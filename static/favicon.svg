@@ -1,5 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="14" fill="#9e1b1b"/>
-  <path d="M14 10v44M18 10v44" stroke="#f6d77a" stroke-width="2"/>
-  <text x="40" y="45" text-anchor="middle" font-family="serif" font-size="34" font-weight="700" fill="#fbf1c7">अ</text>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#d6432b"/><path d="M23 611Q52 630 93.5 640.0Q135 650 177 650Q216 650 253.5 640.0Q291 630 320.0 609.5Q349 589 366.5 557.5Q384 526 384 482Q384 439 364.0 408.5Q344 378 323 365Q334 361 351.0 358.0Q368 355 390 355Q423 355 447.5 361.0Q472 367 486 376V538H434V642H704V538H624V0H486V257Q481 253 466.0 251.0Q451 249 433 249Q399 249 368 262L366 259Q379 245 386.5 222.5Q394 200 394 176Q394 98 336.0 56.0Q278 14 181 14Q123 14 74.5 29.0Q26 44 0 64L40 157Q63 140 92.5 130.5Q122 121 158 121Q203 121 228.5 143.0Q254 165 254 200Q254 238 228.0 261.5Q202 285 156 285H82V390H143Q187 390 215.5 411.0Q244 432 244 467Q244 505 218.5 524.0Q193 543 155 543Q103 543 59 515Z" fill="#fff" transform="translate(104.64 375.75) scale(0.43 -0.43)"/><path d="M206 452 L256 410 L306 452" fill="none" stroke="#ffe27a" stroke-width="26" stroke-linecap="round" stroke-linejoin="round"/></svg>

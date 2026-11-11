@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Meta from '$lib/components/Meta.svelte';
   import { onMount } from 'svelte';
   import { fly } from 'svelte/transition';
   import { base } from '$app/paths';
@@ -73,8 +74,8 @@
   }
 </script>
 
+<Meta title="Log in to Andaaza" description="Pick a colour theme, keep your streak on every device and join the leaderboard. You never need an account to play." />
 <svelte:head>
-  <title>Log in · Andaaza</title>
   <meta name="robots" content="noindex" />
 </svelte:head>
 

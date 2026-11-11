@@ -391,6 +391,8 @@ select {
 
 /* Round floating icon button (header gear / profile). */
 .icon-btn {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
   display: inline-grid;
   place-items: center;
   width: 2.5rem;

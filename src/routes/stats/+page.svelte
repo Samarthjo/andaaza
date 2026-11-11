@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Meta from '$lib/components/Meta.svelte';
   import { base } from '$app/paths';
   import { onMount } from 'svelte';
   import { formatShortDate, istDateKey } from '$lib/core/date';
@@ -32,9 +33,7 @@
   }
 </script>
 
-<svelte:head>
-  <title>Your Andaaza stats</title>
-</svelte:head>
+<Meta title="Your Andaaza stats" description="Your games, streaks and best days in Andaaza, the daily estimation game for India." />
 
 <section class="page">
   <h1>Your stats</h1>

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Meta from '$lib/components/Meta.svelte';
   import { base } from '$app/paths';
   import { onMount } from 'svelte';
   import { formatLongDate, istDateKey, playableDates, puzzleNumber } from '$lib/core/date';
@@ -34,10 +35,7 @@
   const playedCount = $derived(rows.filter((r) => r.score !== null).length);
 </script>
 
-<svelte:head>
-  <title>Archive: every Andaaza puzzle</title>
-  <meta name="description" content="Play any Andaaza puzzle you missed." />
-</svelte:head>
+<Meta title="Archive: every Andaaza puzzle" description="Play any Andaaza puzzle you missed." />
 
 <section class="page">
   <div class="head">

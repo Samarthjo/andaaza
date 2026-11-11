@@ -1,13 +1,11 @@
 <script lang="ts">
+  import Meta from '$lib/components/Meta.svelte';
   import { base } from '$app/paths';
   import { LAUNCH_DATE, formatLongDate } from '$lib/core/date';
   import { online } from '$lib/state/online';
 </script>
 
-<svelte:head>
-  <title>About Andaaza</title>
-  <meta name="description" content="How Andaaza works: scoring, sources and your data." />
-</svelte:head>
+<Meta title="About Andaaza" description="How Andaaza works: scoring, sources and your data." />
 
 <article class="page">
   <h1>About</h1>

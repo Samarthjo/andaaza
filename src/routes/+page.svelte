@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Meta from '$lib/components/Meta.svelte';
   import { fade } from 'svelte/transition';
   import AryabhataArt from '$lib/components/landing/AryabhataArt.svelte';
   import Faq from '$lib/components/landing/Faq.svelte';
@@ -14,15 +15,7 @@
   }
 </script>
 
-<svelte:head>
-  <title>Andaaza: the daily estimation game for India</title>
-  <meta
-    name="description"
-    content="Three questions about India every day. Villages, votes, cricket, rockets. One guess each, scored on how close you get."
-  />
-  <meta property="og:title" content="Andaaza: the daily estimation game for India" />
-  <meta property="og:description" content="Ek padha-likha tukka maaro. Three questions about India, one guess each." />
-</svelte:head>
+<Meta title="Andaaza: the daily estimation game for India" description="Ek padha-likha tukka maaro. Three questions about India every day, one guess each, scored on how close you get." />
 
 <div class="game">
   <Game start="intro" bind:phase bind:this={game} />

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Meta from '$lib/components/Meta.svelte';
   import { onMount } from 'svelte';
   import { fade } from 'svelte/transition';
   import { base } from '$app/paths';
@@ -72,9 +73,7 @@
   });
 </script>
 
-<svelte:head>
-  <title>Leaderboard · Andaaza</title>
-</svelte:head>
+<Meta title="Andaaza leaderboard" description="Today’s top guessers, the best averages and the longest streaks in Andaaza, the daily estimation game for India." />
 
 <section class="board">
   <h1>Leaderboard</h1>

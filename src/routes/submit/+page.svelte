@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Meta from '$lib/components/Meta.svelte';
   import { online, submitQuestion } from '$lib/state/online';
   import { copyText } from '$lib/share';
 
@@ -25,9 +26,7 @@
   }
 </script>
 
-<svelte:head>
-  <title>Suggest a question for Andaaza</title>
-</svelte:head>
+<Meta title="Suggest a question for Andaaza" description="Know a number about India that would make a great puzzle? Send it in." />
 
 <section class="page">
   <h1>Suggest a question</h1>

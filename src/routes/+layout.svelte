@@ -12,6 +12,7 @@
   import { reportPending, setSignedIn } from '$lib/state/game';
   import { online } from '$lib/state/online';
   import { settings } from '$lib/state/settings.svelte';
+  import { PREVIEW_IMAGE } from '$lib/site';
 
   let { children } = $props();
   let menuOpen = $state(false);
@@ -37,7 +38,7 @@
   });
 
   // Link previews (X, WhatsApp, LinkedIn) need an absolute image URL at build time.
-  const previewImage = `${(import.meta.env.VITE_SITE_URL || 'https://andaaza-two.vercel.app').replace(/\/$/, '')}/og.png`;
+  const previewImage = PREVIEW_IMAGE;
 
   const isHome = $derived(page.url.pathname === `${base}/` || page.url.pathname === base || page.url.pathname === '/');
 </script>
@@ -46,6 +47,7 @@
   <meta property="og:site_name" content="Andaaza" />
   <meta property="og:type" content="website" />
   <meta property="og:image" content={previewImage} />
+  <meta property="og:image:type" content="image/png" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
   <meta property="og:image:alt" content="Andaaza: Ek padha-likha tukka maaro. The daily estimation game for India." />
