@@ -14,10 +14,12 @@ export const accountsEnabled = online && import.meta.env.VITE_ACCOUNTS === '1';
 export const SUPABASE_URL = URL_BASE;
 export const SUPABASE_KEY = ANON_KEY;
 
-/** Access token of the signed-in player, set by the auth store. Null for guests. */
+/** Access token and id of the signed-in player, set by the auth store. Null for guests. */
 let accessToken: string | null = null;
-export function setAccessToken(token: string | null) {
+let userId: string | null = null;
+export function setAuth(token: string | null, id: string | null) {
   accessToken = token;
+  userId = id;
 }
 
 function headers(): Record<string, string> {
@@ -64,12 +66,44 @@ export function fetchUserGames() {
 
 /** Signed-in only: save or update synced games. */
 export function upsertUserGames(rows: { puzzle_date: string; game: unknown }[]) {
-  if (!rows.length) return Promise.resolve({});
+  if (!rows.length || !userId) return Promise.resolve(rows.length ? null : {});
+  const now = new Date().toISOString();
   return request('/rest/v1/andaaza_user_games', {
     method: 'POST',
     headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
-    body: JSON.stringify(rows.map((r) => ({ ...r, updated_at: new Date().toISOString() })))
+    body: JSON.stringify(rows.map((r) => ({ user_id: userId, ...r, updated_at: now })))
   });
+}
+
+/** A signed-in player's profile row (andaaza_profiles). */
+export interface Profile {
+  name: string | null;
+  palette: string | null;
+  theme: string | null;
+  number_style: string | null;
+}
+
+/** Signed-in only: this player's profile, or null when it can't be read. */
+export async function fetchProfile(): Promise<Profile | null> {
+  const rows = await request<Profile[]>('/rest/v1/andaaza_profiles?select=name,palette,theme,number_style', { method: 'GET' });
+  if (!Array.isArray(rows)) return null;
+  return rows[0] ?? { name: null, palette: null, theme: null, number_style: null };
+}
+
+/** Signed-in only: create or update fields of this player's profile. */
+export function saveProfile(patch: Partial<Profile>) {
+  if (!userId) return Promise.resolve(null);
+  return request('/rest/v1/andaaza_profiles', {
+    method: 'POST',
+    headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+    body: JSON.stringify({ user_id: userId, ...patch, updated_at: new Date().toISOString() })
+  });
+}
+
+/** Which sign-in methods the Supabase project has switched on (public endpoint). */
+export async function authProviders(): Promise<{ email: boolean; google: boolean }> {
+  const s = await request<{ external?: Record<string, boolean> }>('/auth/v1/settings', { method: 'GET' });
+  return { email: s?.external?.email !== false, google: s?.external?.google === true };
 }
 
 export function recordAnswer(a: {

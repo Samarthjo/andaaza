@@ -86,7 +86,7 @@
           <a class="more" href="{base}/leaderboard" onclick={close}>See full leaderboard <span aria-hidden="true">→</span></a>
         </div>
         {#if accountsEnabled && !auth.signedIn}
-          <p class="prompt">Log in from the You panel to join the leaderboard.</p>
+          <p class="prompt"><a href="{base}/login?next=%2Fleaderboard" onclick={close}>Log in</a> to join the leaderboard.</p>
         {:else if !settings.value.nickname}
           <p class="prompt">Add your name in the You panel to join the leaderboard.</p>
         {/if}

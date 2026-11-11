@@ -28,8 +28,8 @@ const writes = [];
 
 const browser = await chromium.launch({ proxy });
 const context = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: scale });
-// Anything else on Supabase (auth, synced games) never reaches the real project either.
-await context.route(/supabase\.co\//, (route) => route.fulfill({ status: 404, contentType: 'application/json', body: '{}' }));
+// Anything else on Supabase (auth settings, profiles, synced games) never reaches the real project either.
+await context.route(/supabase\.co\//, (route) => route.fulfill({ status: 200, contentType: 'application/json', body: '{}' }));
 await context.route('**/rest/v1/rpc/**', async (route) => {
   const fn = route.request().url().split('/rpc/')[1];
   if (fn.startsWith('andaaza_puzzle_stats')) {
@@ -208,13 +208,16 @@ await page.getByRole('button', { name: 'You', exact: true }).click();
 await page.waitForTimeout(500);
 if (!(await page.getByText('Day streak').isVisible())) fail('profile panel missing streak');
 if ((await page.locator('.themes .theme').count()) !== 4) fail('profile panel should offer 4 themes');
-await page.locator('.themes .theme', { hasText: 'Neel' }).click();
-await page.waitForTimeout(300);
-if ((await page.evaluate(() => document.documentElement.dataset.palette)) !== 'neel') fail('picking Neel in the You panel did not apply');
+if (!(await page.getByRole('link', { name: 'Create account or log in' }).isVisible())) fail('guests get no login button');
 await sheetFits('profile');
 await shot('profile');
-await page.getByRole('button', { name: 'Close', exact: true }).click();
-await page.waitForTimeout(400);
+// Guests who pick a colour theme are asked to log in first; the page stays on Haldi.
+await page.locator('.themes .theme', { hasText: 'Neel' }).click();
+await page.waitForURL(/\/login\?next=/);
+await page.getByText('Log in to switch to Neel.').waitFor();
+if ((await page.evaluate(() => document.documentElement.dataset.palette)) !== 'haldi') fail('a locked theme applied for a guest');
+await page.waitForTimeout(500);
+await shot('login');
 
 // Archive + replay an old puzzle
 await page.goto(base + '/archive', { waitUntil: 'networkidle' });
@@ -231,7 +234,7 @@ await page.goto(base + '/stats', { waitUntil: 'networkidle' });
 const played = await page.locator('.tiles div', { hasText: 'Finished' }).locator('dd').innerText();
 if (played.trim() !== '1') fail(`stats finished = ${played}`);
 
-// Settings: dark mode (the colour theme was picked in the You panel)
+// Settings: dark mode works for everyone
 await page.goto(base + '/', { waitUntil: 'networkidle' });
 await page.getByRole('button', { name: 'Settings' }).click();
 await page.waitForTimeout(400);
@@ -241,7 +244,7 @@ await shot('settings');
 await page.getByRole('button', { name: 'Close settings' }).click();
 await page.waitForTimeout(400);
 const attrs = await page.evaluate(() => [document.documentElement.dataset.palette, document.documentElement.dataset.theme]);
-if (attrs.join() !== 'neel,dark') fail(`theme attrs ${attrs}`);
+if (attrs.join() !== 'haldi,dark') fail(`theme attrs ${attrs}`);
 await shot('intro-dark');
 
 // Desktop

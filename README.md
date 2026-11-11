@@ -97,19 +97,19 @@ each, no Googling.
   </tr>
   <tr>
     <td align="center" valign="top">
-      <img src="screenshots/profile-panel.png" width="240" alt="You panel with played, day streak, average and best tiles and four colour themes"><br>
+      <img src="screenshots/profile-panel.png" width="240" alt="You panel with played, day streak, average and best tiles, and colour themes locked until you log in"><br>
       <b>You</b><br>
-      <sub>Stats, colour themes and (once accounts are on) sign-in.</sub>
+      <sub>Your stats, and colour themes that unlock with a free account.</sub>
+    </td>
+    <td align="center" valign="top">
+      <img src="screenshots/login.png" width="240" alt="Login page asking for a name and email, with a note that you never need an account to play"><br>
+      <b>Log in</b><br>
+      <sub>Name and email, then a one-time link. Your theme and streak follow you to every device.</sub>
     </td>
     <td align="center" valign="top">
       <img src="screenshots/menu.png" width="240" alt="Menu with the archive grid, today's leaderboard, and Submit a question and Feedback tiles"><br>
       <b>Menu</b><br>
       <sub>Every past puzzle, the leaderboard, question ideas and feedback.</sub>
-    </td>
-    <td align="center" valign="top">
-      <img src="screenshots/how-to-play.png" width="240" alt="How to play section with tilted example cards"><br>
-      <b>Home page</b><br>
-      <sub>How to play, a word from Aryabhata and an FAQ under today's card.</sub>
     </td>
   </tr>
 </table>
@@ -122,7 +122,7 @@ On a laptop:
 </p>
 
 <sub>Screenshots come from `npm run test:e2e`, which fills the crowd charts and
-leaderboard with sample data. More (dark mode, FAQ, laptop home page) in
+leaderboard with sample data. More (how to play, dark mode, FAQ, laptop home page) in
 [`screenshots/`](screenshots/).</sub>
 
 ### Scoring
@@ -190,26 +190,31 @@ Finished games that never reached the backend (played offline, or before online
 mode) are sent once on the next visit, so a player's own result always shows in
 the charts.
 
-## Accounts (off until Supabase Auth is set up)
+## Accounts
 
-Builds with `VITE_ACCOUNTS=1` add passwordless email sign-in to the You panel.
-Signed-in players get their games synced across devices, a leaderboard entry and
-the colour themes (guests stay on Haldi). Without the flag, themes are open to
-everyone and no account UI shows.
+Playing never needs an account. Colour themes do: a guest who taps a theme goes to
+`/login`, enters a name and email (or uses Google once it's switched on), and gets a
+one-time link. Opening it logs them in, applies the theme they picked and unlocks the
+rest. Signed-in players also get their games, theme, light/dark mode and number style
+on every device, and their name on the leaderboard.
 
-1. Apply `supabase/migrations/20261110000000_accounts.sql` (per-player
-   `andaaza_user_games` table with row-level security, leaderboard limited to
-   signed-in players).
-2. In Supabase, Authentication → URL Configuration: set the Site URL to the live
-   site and add `https://<site>/**` for every host the game runs on (Vercel, GitHub
-   Pages, `http://localhost:5173/**`) to Redirect URLs.
-3. Set up custom SMTP (Authentication → Emails). The built-in sender is only for
-   testing and allows a few emails an hour.
-4. Add `VITE_ACCOUNTS=1` to `.env.production` and redeploy.
+- `supabase/migrations/20261110000000_accounts.sql` (applied): `andaaza_profiles`
+  (name, theme, mode, number style) and `andaaza_user_games`, both readable and
+  writable only by their owner (row-level security); a trigger that creates a
+  profile with the sign-up name; a leaderboard limited to signed-in players.
+- Names and emails: Supabase → Authentication → Users. Names and themes:
+  Table Editor → `andaaza_profiles`.
+- Email delivery needs custom SMTP (Authentication → Emails). Supabase's built-in
+  sender only reaches the project's own team.
+- Google: create an OAuth client in Google Cloud (redirect URI
+  `https://pqvppabcdbenzrlbxzkw.supabase.co/auth/v1/callback`) and paste its ID and
+  secret into Authentication → Sign In / Providers → Google. The button on `/login`
+  appears by itself once it's on.
+- Builds without `VITE_ACCOUNTS=1` hide all of this and leave themes open to everyone.
 
-`npm run build` with `VITE_ACCOUNTS=1`, then `node tests/e2e/accounts.mjs`, checks
-the guest view, the theme lock and the sign-in email request against stubbed
-Supabase calls.
+`node tests/e2e/accounts.mjs` runs the whole flow (locked theme, login form, email
+request, coming back signed in, profile saved and restored, logging out) against
+stubbed Supabase calls.
 
 ## Credits
 

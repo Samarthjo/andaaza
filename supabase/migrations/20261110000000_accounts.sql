@@ -1,4 +1,4 @@
--- Accounts: per-user game sync and signed-in leaderboard.
+-- Accounts: player profiles (name and look), per-user game sync and a signed-in leaderboard.
 
 -- Each signed-in player's saved games, so puzzles follow them across devices.
 create table if not exists public.andaaza_user_games (
@@ -38,7 +38,7 @@ begin
     raise exception 'future puzzle';
   end if;
   insert into andaaza_games (session, puzzle_date, mode, score, nickname, user_id)
-  values (p_session, p_date, p_mode, least(greatest(p_score, 1), 1000), nullif(btrim(p_nickname), ''), auth.uid())
+  values (p_session, p_date, p_mode, least(greatest(p_score, 1), 1000), left(nullif(btrim(p_nickname), ''), 24), auth.uid())
   on conflict (session, puzzle_date) do update
     set user_id  = coalesce(excluded.user_id, andaaza_games.user_id),
         nickname = coalesce(excluded.nickname, andaaza_games.nickname);
@@ -67,3 +67,50 @@ revoke all on function public.andaaza_record_game(text, date, text, double preci
 revoke all on function public.andaaza_leaderboard(text, date) from public;
 grant execute on function public.andaaza_record_game(text, date, text, double precision, text) to anon, authenticated;
 grant execute on function public.andaaza_leaderboard(text, date) to anon, authenticated;
+
+-- Player profile: the name shown on the leaderboard and the look they picked, synced across devices.
+create table if not exists public.andaaza_profiles (
+  user_id      uuid primary key default auth.uid() references auth.users (id) on delete cascade,
+  name         text check (name is null or char_length(name) between 1 and 24),
+  palette      text check (palette is null or palette in ('haldi', 'gulabi', 'neel', 'mehendi')),
+  theme        text check (theme is null or theme in ('system', 'light', 'dark')),
+  number_style text check (number_style is null or number_style in ('indian', 'international')),
+  created_at   timestamptz not null default now(),
+  updated_at   timestamptz not null default now()
+);
+
+alter table public.andaaza_profiles enable row level security;
+
+drop policy if exists andaaza_profiles_select_own on public.andaaza_profiles;
+drop policy if exists andaaza_profiles_insert_own on public.andaaza_profiles;
+drop policy if exists andaaza_profiles_update_own on public.andaaza_profiles;
+create policy andaaza_profiles_select_own on public.andaaza_profiles
+  for select to authenticated using ((select auth.uid()) = user_id);
+create policy andaaza_profiles_insert_own on public.andaaza_profiles
+  for insert to authenticated with check ((select auth.uid()) = user_id);
+create policy andaaza_profiles_update_own on public.andaaza_profiles
+  for update to authenticated using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
+
+revoke all on public.andaaza_profiles from anon;
+grant select, insert, update on public.andaaza_profiles to authenticated;
+
+-- Every new account gets a profile holding the name it signed up with (email form or Google).
+create or replace function public.andaaza_handle_new_user()
+returns trigger
+language plpgsql security definer set search_path = '' as $$
+begin
+  insert into public.andaaza_profiles (user_id, name)
+  values (
+    new.id,
+    left(nullif(btrim(coalesce(new.raw_user_meta_data ->> 'name', new.raw_user_meta_data ->> 'full_name', '')), ''), 24)
+  )
+  on conflict (user_id) do nothing;
+  return new;
+end $$;
+
+revoke all on function public.andaaza_handle_new_user() from public, anon, authenticated;
+
+drop trigger if exists andaaza_on_auth_user_created on auth.users;
+create trigger andaaza_on_auth_user_created
+  after insert on auth.users
+  for each row execute function public.andaaza_handle_new_user();

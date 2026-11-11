@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { tick } from 'svelte';
-  import { slide } from 'svelte/transition';
   import { base } from '$app/paths';
+  import { goto } from '$app/navigation';
+  import { page } from '$app/state';
   import { istDateKey } from '$lib/core/date';
   import { formatFactor } from '$lib/core/number';
   import { computeStats, type PlayerStats } from '$lib/core/stats';
@@ -14,52 +14,30 @@
 
   let { open = $bindable(false) }: { open: boolean } = $props();
   let stats = $state<PlayerStats | null>(null);
-  let showLogin = $state(false);
-  let email = $state('');
-  let sending = $state(false);
-  let sentTo = $state('');
-  let error = $state('');
-  let hint = $state('');
   let nick = $state('');
   let savedNick = $state(false);
-  let emailInput: HTMLInputElement | undefined = $state();
 
   $effect(() => {
     if (!open) return;
     stats = computeStats(allGames(), istDateKey());
     nick = settings.value.nickname;
     savedNick = false;
-    hint = '';
   });
 
   const close = () => (open = false);
-  const validEmail = $derived(/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim()));
-
-  async function openLogin() {
-    showLogin = true;
-    error = '';
-    await tick();
-    emailInput?.focus();
-  }
-
-  async function send(e: Event) {
-    e.preventDefault();
-    if (!validEmail || sending) return;
-    sending = true;
-    error = '';
-    const err = await auth.sendLink(email.trim());
-    sending = false;
-    if (err) error = err;
-    else sentTo = email.trim();
-  }
+  // After logging in, people land back on the page they were on.
+  const here = $derived(page.url.pathname.slice(base.length) || '/');
+  const loginHref = $derived(`${base}/login?next=${encodeURIComponent(here)}`);
 
   function pick(id: Palette) {
-    if (!settings.unlocked) {
-      hint = 'Sign in to unlock colour themes.';
-      if (accountsEnabled) openLogin();
+    if (settings.unlocked) {
+      settings.update({ palette: id });
       return;
     }
-    settings.update({ palette: id });
+    if (id === 'haldi') return;
+    auth.want(id);
+    close();
+    goto(loginHref);
   }
 </script>
 
@@ -67,47 +45,20 @@
   <div class="panel">
     <header>
       <span class="avatar" aria-hidden="true"><Icon name="user" size={24} /></span>
-      <h2 id="you-title">You</h2>
+      <h2 id="you-title">{auth.signedIn && auth.name ? auth.name : 'You'}</h2>
       <button class="icon-btn close" onclick={close} aria-label="Close"><Icon name="x" size={20} /></button>
     </header>
 
     {#if accountsEnabled}
       {#if auth.signedIn}
         <div class="account">
-          <p class="pitch">Signed in as <strong>{auth.email}</strong>. Your puzzles sync to every device you sign in on.</p>
+          <p class="pitch">Logged in as <strong>{auth.email}</strong>. Your theme and puzzles follow you to every device.</p>
           <button class="link" onclick={() => auth.signOut()}>Log out</button>
         </div>
       {:else}
         <div class="account">
-          <p class="pitch">
-            An account keeps your finished puzzles on every device, puts you on the leaderboard and unlocks colour themes.
-          </p>
-          {#if sentTo}
-            <p class="sent" role="status">
-              <Icon name="mail" size={20} />
-              <span>Check your inbox at <strong>{sentTo}</strong>. The link signs you in.</span>
-            </p>
-          {:else if !showLogin}
-            <button class="dark-pill" onclick={openLogin}>Create account or log in</button>
-          {:else}
-            <form class="login" onsubmit={send} transition:slide={{ duration: 220 }}>
-              <label for="login-email">Email</label>
-              <div class="row">
-                <input
-                  bind:this={emailInput}
-                  id="login-email"
-                  type="email"
-                  autocomplete="email"
-                  inputmode="email"
-                  placeholder="you@example.com"
-                  bind:value={email}
-                />
-                <button class="dark-pill" type="submit" disabled={!validEmail || sending}>{sending ? 'Sending…' : 'Send link'}</button>
-              </div>
-              <p class="small">No password. We email you a link that signs you in.</p>
-              {#if error}<p class="err" role="alert">{error}</p>{/if}
-            </form>
-          {/if}
+          <p class="pitch">An account unlocks colour themes, keeps your puzzles on every device and puts you on the leaderboard.</p>
+          <a class="dark-pill" href={loginHref} onclick={close}>Create account or log in</a>
         </div>
       {/if}
       <hr />
@@ -132,7 +83,7 @@
       <div class="sechead">
         <h3 id="theme-h" class="lbl">Theme</h3>
         {#if !settings.unlocked}
-          <button class="link lockline" onclick={openLogin}><Icon name="lock" size={18} /> Sign in to unlock</button>
+          <a class="link lockline" href={loginHref} onclick={close}><Icon name="lock" size={18} /> Log in to unlock</a>
         {/if}
       </div>
       <div class="themes">
@@ -146,7 +97,6 @@
           </button>
         {/each}
       </div>
-      {#if hint}<p class="small" role="status">{hint}</p>{/if}
     </section>
 
     {#if online && (!accountsEnabled || auth.signedIn)}
@@ -215,6 +165,10 @@
     color: var(--ink);
   }
   .dark-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
     min-height: 3rem;
     padding: 0 1.4rem;
     border: none;
@@ -235,12 +189,6 @@
   .dark-pill:active {
     transform: scale(0.97);
   }
-  .dark-pill[disabled] {
-    opacity: 0.5;
-    cursor: not-allowed;
-    transform: none;
-  }
-  .login,
   .name {
     display: grid;
     gap: 0.45rem;
@@ -268,24 +216,9 @@
     border-color: var(--binding);
     outline: none;
   }
-  .sent {
-    display: flex;
-    gap: 0.6rem;
-    align-items: flex-start;
-    overflow-wrap: anywhere;
-    padding: 0.85rem 1rem;
-    border-radius: 14px;
-    background: var(--surface);
-    box-shadow: var(--shadow);
-    font-size: var(--t-sm);
-  }
   .small {
     font-size: var(--t-xs);
     color: var(--ink-soft);
-  }
-  .err {
-    font-size: var(--t-sm);
-    color: var(--bad);
   }
   .link {
     border: none;
@@ -293,6 +226,7 @@
     padding: 0;
     color: var(--answer);
     font-weight: 700;
+    text-decoration: none;
     cursor: pointer;
   }
   .link:hover {
@@ -325,7 +259,7 @@
   .sechead a:hover {
     text-decoration: underline;
   }
-  .lockline {
+  .sechead .lockline {
     display: inline-flex;
     gap: 0.35rem;
     align-items: center;

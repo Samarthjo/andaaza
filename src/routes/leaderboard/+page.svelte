@@ -37,7 +37,7 @@
     <p class="sub">The leaderboard isn’t switched on for this copy of Andaaza. Your own scores are on the <a href="{base}/stats">stats page</a>.</p>
   {:else}
     {#if accountsEnabled && !auth.signedIn}
-      <p class="sub">Log in from the You panel (top right) to put your name on the board.</p>
+      <p class="sub"><a href="{base}/login?next=%2Fleaderboard">Log in</a> to put your name on the board.</p>
     {:else}
     <form
       class="nick"
